@@ -14,23 +14,22 @@ func AuthMiddleware() gin.HandlerFunc {
 		token, claims, err := common.ParseToken(tokenString)
 		//token空或者不合法
 		if err != nil || !token.Valid {
-			ctx.JSON(http.StatusOK, controller.UserResponse{
-				Response: controller.Response{StatusCode: 1, StatusMsg: "User doesn't exist"},
+			ctx.JSON(http.StatusOK, controller.Response{
+				StatusCode: 1,
+				StatusMsg:  "User doesn't exist",
 			})
 			ctx.Abort()
+			return
 		}
 		//校验user是否存在
 		if user := assist.GetUserByID(int64(claims.UserId)); user.Id != 0 {
-			ctx.JSON(http.StatusOK, controller.UserResponse{
-				Response: controller.Response{StatusCode: 0},
-				User:     user,
+			ctx.Next()
+		} else {
+			ctx.JSON(http.StatusOK, controller.Response{
+				StatusCode: 1,
+				StatusMsg:  "User doesn't exist",
 			})
 			ctx.Abort()
-		} else {
-			ctx.JSON(http.StatusOK, controller.UserResponse{
-				Response: controller.Response{StatusCode: 1, StatusMsg: "User doesn't exist"},
-			})
-			ctx.Next()
 		}
 
 	}

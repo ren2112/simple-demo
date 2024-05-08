@@ -33,6 +33,16 @@ func Publish(c *gin.Context) {
 	filename := filepath.Base(data.Filename)
 	_, claims, _ := common.ParseToken(tokenStr)
 	finalName := fmt.Sprintf("%d_%s", claims.UserId, filename)
+
+	//如果不是视频，返回异常
+	if utils.IsVideoFile(finalName) == false {
+		c.JSON(http.StatusOK, Response{
+			StatusCode: 1,
+			StatusMsg:  "请上传视频！",
+		})
+		return
+	}
+
 	saveFile := filepath.Join("./public/", finalName)
 	if err := c.SaveUploadedFile(data, saveFile); err != nil {
 		c.JSON(http.StatusOK, Response{

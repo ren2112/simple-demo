@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
 	"github.com/gin-gonic/gin"
@@ -28,11 +27,16 @@ func FavoriteAction(c *gin.Context) {
 	favorite.VideoId = int64(videoId)
 
 	if actionType == "1" {
-		common.DB.Create(&favorite)
+		//查看favorite表格是否存在数据，如果已经存在，则不处理
+		var existingFavorite model.Favorite
+		result := common.DB.Where("user_id = ? AND video_id = ?", claims.UserId, videoId).First(&existingFavorite)
+		if result.RowsAffected == 0 {
+			common.DB.Create(&favorite)
+		}
 		// 开启事务,对点赞数量更新的时候需要上行级锁
 		tx := common.DB.Begin()
 		var userVideo model.UserVideo
-		result := tx.Where("user_id = ? AND video_id = ?", claims.UserId, videoId).First(&userVideo)
+		result = tx.Where("user_id = ? AND video_id = ?", claims.UserId, videoId).First(&userVideo)
 		if result.RowsAffected == 0 {
 			// 如果关联记录不存在，则创建新记录
 			userVideo = model.UserVideo{
@@ -85,12 +89,11 @@ func FavoriteList(c *gin.Context) {
 	userId := c.Query("user_id")
 	var favorites []model.Favorite
 	var videoList []model.Video
-	common.DB.Preload("Video").Model(&model.Favorite{}).Where("user_id = ?", userId).Find(&favorites)
+	common.DB.Preload("Video").Preload("Video.Author").Model(&model.Favorite{}).Where("user_id = ?", userId).Find(&favorites)
 	for _, v := range favorites {
 		v.Video.IsFavorite = true
 		videoList = append(videoList, v.Video)
 	}
-	fmt.Println(len(videoList))
 	c.JSON(http.StatusOK, VideoListResponse{
 		Response: Response{
 			StatusCode: 0,
