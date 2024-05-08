@@ -4,6 +4,7 @@ import (
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 	"time"
@@ -35,12 +36,36 @@ func Feed(c *gin.Context) {
 	}
 	var videoList = []model.Video{}
 	latestTimeUTC := time.Unix(0, latestTime*int64(time.Millisecond))
-	common.DB.Preload("Author").Model(&model.Video{}).Where("created_at < ?", latestTimeUTC).Find(&videoList)
+	common.DB.Preload("Author").Preload("Author.Videos").Model(&model.Video{}).Where("created_at < ?", latestTimeUTC).Find(&videoList)
 
 	for i, v := range videoList {
 		var userVideo model.UserVideo
+		//查找是否点赞
 		common.DB.Where("user_id=? and video_id=?", claims.UserId, v.Id).First(&userVideo)
 		videoList[i].IsFavorite = userVideo.IsFavorite
+
+		//获取视频的作者的作品数量以及点赞数
+		//获取作品数量
+		videoList[i].Author.WorkCount = len(videoList[i].Author.Videos)
+		//获取获赞数量
+		for _, author_video := range videoList[i].Author.Videos {
+			videoList[i].Author.TotalFavorited += author_video.FavoriteCount
+		}
+
+		//	查找videoList的author里面is_follow
+		// 查找作者是否被当前用户关注
+		var follow model.Follow
+		err := common.DB.Where("user_id = ? AND follower_user_id = ?", v.Author.Id, claims.UserId).First(&follow).Error
+		if err == nil {
+			videoList[i].Author.IsFollow = true
+		} else if err == gorm.ErrRecordNotFound {
+			videoList[i].Author.IsFollow = false
+		} else {
+			c.JSON(http.StatusOK, UserLoginResponse{
+				Response: Response{StatusCode: 1, StatusMsg: "获取视频失败！请重试" + c.Query("latest_time")},
+			})
+			return
+		}
 	}
 
 	var responseTime int64

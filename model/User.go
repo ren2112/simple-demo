@@ -16,4 +16,7 @@ type User struct {
 	Password        string    `json:"password" gorm:"size:255,not null"`
 	Salt            string    `json:"salt"`
 	Videos          []Video   `gorm:"many2many:user_videos;association_autoupdate:false"`
+	WorkCount       int       `json:"work_count" gorm:"-"`
+	TotalFavorited  int64     `json:"total_favorited" gorm:"-"`
+	FavoriteCount   int64     `json:"favorite_count" gorm:"-"`
 }

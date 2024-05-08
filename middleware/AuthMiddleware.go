@@ -11,6 +11,9 @@ import (
 func AuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		tokenString := ctx.Query("token")
+		if tokenString == "" {
+			tokenString = ctx.PostForm("token")
+		}
 		token, claims, err := common.ParseToken(tokenString)
 		//token空或者不合法
 		if err != nil || !token.Valid {
@@ -23,6 +26,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 		//校验user是否存在
 		if user := assist.GetUserByID(int64(claims.UserId)); user.Id != 0 {
+			ctx.Set("user", user)
 			ctx.Next()
 		} else {
 			ctx.JSON(http.StatusOK, controller.Response{
