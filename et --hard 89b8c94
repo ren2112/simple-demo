@@ -1,0 +1,36 @@
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{0}: checkout: moving from main to user
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{1}: checkout: moving from first_and_origin to main
+[33m982df2f[m[33m ([m[1;32mfirst_and_origin[m[33m)[m HEAD@{2}: checkout: moving from main to first_and_origin
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{3}: checkout: moving from user to main
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{4}: checkout: moving from main to user
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{5}: checkout: moving from first_and_origin to main
+[33m982df2f[m[33m ([m[1;32mfirst_and_origin[m[33m)[m HEAD@{6}: reset: moving to HEAD
+[33m982df2f[m[33m ([m[1;32mfirst_and_origin[m[33m)[m HEAD@{7}: checkout: moving from main to first_and_origin
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{8}: reset: moving to origin/main
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{9}: checkout: moving from first_and_origin to main
+[33m982df2f[m[33m ([m[1;32mfirst_and_origin[m[33m)[m HEAD@{10}: reset: moving to 982df2f0964e3745550a63400e0235d50fa44d80
+[33m5031aee[m HEAD@{11}: checkout: moving from user to first_and_origin
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{12}: checkout: moving from first_and_origin to user
+[33m5031aee[m HEAD@{13}: reset: moving to HEAD~1
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{14}: checkout: moving from first_and_origin to first_and_origin
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{15}: checkout: moving from main to first_and_origin
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{16}: checkout: moving from user to main
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{17}: checkout: moving from main to user
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{18}: reset: moving to HEAD
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{19}: checkout: moving from user to main
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{20}: checkout: moving from main to user
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{21}: checkout: moving from main to main
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{22}: branch: Reset to origin/main
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{23}: checkout: moving from main to main
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{24}: branch: Reset to origin/main
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{25}: checkout: moving from user to main
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{26}: checkout: moving from main to user
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{27}: checkout: moving from user to main
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{28}: checkout: moving from main to user
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{29}: checkout: moving from main to main
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{30}: branch: Reset to origin/main
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{31}: checkout: moving from user to main
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{32}: checkout: moving from main to user
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{33}: checkout: moving from user to main
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{34}: checkout: moving from main to user
+[33m89b8c94[m[33m ([m[1;36mHEAD -> [m[1;32muser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{35}: clone: from https://github.com/ren2112/simple-demo
