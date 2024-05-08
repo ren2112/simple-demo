@@ -21,7 +21,6 @@ func Publish(c *gin.Context) {
 	tokenStr := c.PostForm("token")
 	title := c.PostForm("title")
 	data, err := c.FormFile("data")
-
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
