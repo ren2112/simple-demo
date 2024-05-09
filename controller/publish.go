@@ -18,7 +18,15 @@ type VideoListResponse struct {
 
 // Publish check token then save upload file to public directory
 func Publish(c *gin.Context) {
-	tokenStr := c.PostForm("token")
+	user, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusOK, Response{
+			StatusCode: 1,
+			StatusMsg:  "用户不存在！",
+		})
+		return
+	}
+	author := user.(model.User)
 	title := c.PostForm("title")
 	data, err := c.FormFile("data")
 	if err != nil {
@@ -31,8 +39,7 @@ func Publish(c *gin.Context) {
 	var video model.Video
 
 	filename := filepath.Base(data.Filename)
-	_, claims, _ := common.ParseToken(tokenStr)
-	finalName := fmt.Sprintf("%d_%s", claims.UserId, filename)
+	finalName := fmt.Sprintf("%d_%s", author.Id, filename)
 
 	//如果不是视频，返回异常
 	if utils.IsVideoFile(finalName) == false {
@@ -59,7 +66,7 @@ func Publish(c *gin.Context) {
 		})
 		return
 	}
-	video.PlayUrl = "http://" + serverIp + ":8080/static/" + fmt.Sprintf("%d_%s", claims.UserId, filename)
+	video.PlayUrl = "http://" + serverIp + ":8080/static/" + fmt.Sprintf("%d_%s", author.Id, filename)
 	video.CoverUrl, err = utils.ExtractFirstFrame(video.PlayUrl, finalName, c)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
@@ -68,11 +75,43 @@ func Publish(c *gin.Context) {
 		})
 		return
 	}
-	video.Title = title
-	video.AuthorID = claims.UserId
 
-	common.DB.Create(&video)
-	fmt.Println("filename:", filename, finalName+" uploaded successfully")
+	video.Title = title
+	video.AuthorID = author.Id
+
+	// 开始事务
+	tx := common.DB.Begin()
+
+	// 创建视频
+	if err := tx.Create(&video).Error; err != nil {
+		// 如果创建视频时出现错误，回滚事务
+		tx.Rollback()
+		// 返回错误
+		c.JSON(http.StatusOK, Response{
+			StatusCode: 1,
+			StatusMsg:  err.Error(),
+		})
+		return
+	}
+
+	// 更新作者的work_count字段
+	author.WorkCount++
+
+	// 使用UpdateColumn更新工作计数字段
+	if err := tx.Model(&author).UpdateColumn("work_count", author.WorkCount).Error; err != nil {
+		// 如果更新作者信息时出现错误，回滚事务
+		tx.Rollback()
+		// 返回错误
+		c.JSON(http.StatusOK, Response{
+			StatusCode: 1,
+			StatusMsg:  err.Error(),
+		})
+		return
+	}
+
+	// 提交事务
+	tx.Commit()
+
 	c.JSON(http.StatusOK, Response{
 		StatusCode: 0,
 		StatusMsg:  finalName + " uploaded successfully",
@@ -82,7 +121,13 @@ func Publish(c *gin.Context) {
 
 // PublishList all users have same publish video list
 func PublishList(c *gin.Context) {
-	userId, _ := strconv.Atoi(c.Query("user_id"))
+	userId, err := strconv.Atoi(c.Query("user_id"))
+	if err != nil {
+		c.JSON(http.StatusOK, Response{
+			StatusCode: 1,
+			StatusMsg:  "操作失败！",
+		})
+	}
 	videoList := []model.Video{}
 	common.DB.Preload("Author").Model(&videoList).Where("author_id=?", int64(userId)).Find(&videoList)
 	c.JSON(http.StatusOK, VideoListResponse{

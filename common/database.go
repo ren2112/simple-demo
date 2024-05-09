@@ -29,7 +29,7 @@ func InitDB() {
 	if err != nil {
 		panic(err)
 	}
-	//DB.AutoMigrate(&model.User{})
+	DB.AutoMigrate(&model.User{})
 	//DB.AutoMigrate(&model.Video{})
 	//DB.AutoMigrate(&model.UserVideo{})
 	//DB.AutoMigrate(&model.Favorite{})
