@@ -1,22 +1,20 @@
 package controller
 
 import (
-	"fmt"
+	"github.com/RaymondCode/simple-demo/assist"
+	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
-	"sync/atomic"
 	"time"
 )
 
-var tempChat = map[string][]Message{}
-
-var messageIdSequence = int64(1)
+//var messageIdSequence = int64(1)
 
 type ChatResponse struct {
 	Response
-	MessageList []Message `json:"message_list"`
+	MessageList []model.RespMessage `json:"message_list"`
 }
 
 // MessageAction no practical effect, just check if token is valid
@@ -24,26 +22,22 @@ func MessageAction(c *gin.Context) {
 	//token := c.Query("token")
 	toUserId := c.Query("to_user_id")
 	content := c.Query("content")
+	if content == "" {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "消息不能为空!"})
+		return
+	}
 
 	if user, exist := c.Get("user"); exist {
-		userIdB, _ := strconv.Atoi(toUserId)
-		chatKey := genChatKey(user.(model.User).Id, int64(userIdB))
-
-		atomic.AddInt64(&messageIdSequence, 1)
-		curMessage := Message{
-			Id:         messageIdSequence,
-			Content:    content,
-			CreateTime: time.Now().Format(time.Kitchen),
-		}
-
-		if messages, exist := tempChat[chatKey]; exist {
-			tempChat[chatKey] = append(messages, curMessage)
-		} else {
-			tempChat[chatKey] = []Message{curMessage}
-		}
+		//添加信息于数据库
+		userIdTarget, _ := strconv.Atoi(toUserId)
+		var message model.Message
+		message.Content = content
+		message.FromUserId = user.(model.User).Id
+		message.ToUserId = int64(userIdTarget)
+		common.DB.Create(&message)
 		c.JSON(http.StatusOK, Response{StatusCode: 0})
 	} else {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "用户不存在！"})
 	}
 }
 
@@ -51,20 +45,32 @@ func MessageAction(c *gin.Context) {
 func MessageChat(c *gin.Context) {
 	//token := c.Query("token")
 	toUserId := c.Query("to_user_id")
+	preMsgTimeStr := c.Query("pre_msg_time")
 
 	if user, exist := c.Get("user"); exist {
-		userIdB, _ := strconv.Atoi(toUserId)
-		chatKey := genChatKey(user.(model.User).Id, int64(userIdB))
+		var preMsgTime int64
+		var err error
+		preMsgTime, err = strconv.ParseInt(preMsgTimeStr, 10, 64)
+		if err != nil {
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "请求失败"})
+		}
+		preMsgTimeUTC := time.Unix(0, preMsgTime*int64(time.Millisecond))
 
-		c.JSON(http.StatusOK, ChatResponse{Response: Response{StatusCode: 0}, MessageList: tempChat[chatKey]})
+		userIdTarget, _ := strconv.Atoi(toUserId)
+		fromUserId := user.(model.User).Id
+		var messageList []model.Message
+		common.DB.Where("(to_user_id = ? AND from_user_id = ?) OR (to_user_id = ? AND from_user_id = ?)", userIdTarget, fromUserId, fromUserId, userIdTarget).
+			Where("created_at > ?", preMsgTimeUTC).
+			Order("created_at").
+			Find(&messageList)
+
+		var resMessageList []model.RespMessage
+		for _, v := range messageList {
+			var resMessage = assist.ToRespMessage(v)
+			resMessageList = append(resMessageList, resMessage)
+		}
+		c.JSON(http.StatusOK, ChatResponse{Response: Response{StatusCode: 0}, MessageList: resMessageList})
 	} else {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "用户不存在！"})
 	}
-}
-
-func genChatKey(userIdA int64, userIdB int64) string {
-	if userIdA > userIdB {
-		return fmt.Sprintf("%d_%d", userIdB, userIdA)
-	}
-	return fmt.Sprintf("%d_%d", userIdA, userIdB)
 }

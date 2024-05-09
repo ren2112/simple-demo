@@ -34,6 +34,7 @@ func InitDB() {
 	//DB.AutoMigrate(&model.UserVideo{})
 	//DB.AutoMigrate(&model.Favorite{})
 	//DB.AutoMigrate(&model.Comment{})
-	DB.AutoMigrate(&model.Follow{})
+	//DB.AutoMigrate(&model.Follow{})
+	DB.AutoMigrate(&model.Message{})
 	fmt.Println("mysql inited")
 }

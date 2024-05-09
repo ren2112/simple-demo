@@ -145,7 +145,7 @@ func FollowerList(c *gin.Context) {
 	var followerList []model.Follow
 	common.DB.Preload("FollowerUser").Model(&model.Follow{}).Where("user_id=?", userId).Find(&followerList)
 	for _, v := range followerList {
-		userList = append(userList, v.User)
+		userList = append(userList, v.FollowerUser)
 	}
 
 	c.JSON(http.StatusOK, UserListResponse{
@@ -172,7 +172,7 @@ func FriendList(c *gin.Context) {
 	var followerList []model.Follow
 	common.DB.Model(&model.Follow{}).Preload("FollowerUser").Where("user_id=?", userId).Find(&followerList)
 	for _, v := range followerList {
-		userList = append(userList, v.User)
+		userList = append(userList, v.FollowerUser)
 	}
 
 	c.JSON(http.StatusOK, UserListResponse{
