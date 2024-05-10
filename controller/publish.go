@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/RaymondCode/simple-demo/assist"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
 	"github.com/RaymondCode/simple-demo/utils"
@@ -13,7 +14,7 @@ import (
 
 type VideoListResponse struct {
 	Response
-	VideoList []model.Video `json:"video_list"`
+	VideoList []model.RespVideo `json:"video_list"`
 }
 
 // Publish check token then save upload file to public directory
@@ -67,6 +68,8 @@ func Publish(c *gin.Context) {
 		return
 	}
 	video.PlayUrl = "http://" + serverIp + ":8080/static/" + fmt.Sprintf("%d_%s", author.Id, filename)
+
+	//获得封面并且保存封面图片于服务器
 	video.CoverUrl, err = utils.ExtractFirstFrame(video.PlayUrl, finalName, c)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
@@ -129,11 +132,17 @@ func PublishList(c *gin.Context) {
 		})
 	}
 	videoList := []model.Video{}
+	RespVideoList := []model.RespVideo{}
 	common.DB.Preload("Author").Model(&videoList).Where("author_id=?", int64(userId)).Find(&videoList)
+
+	//将videoList转化为响应结构体
+	for _, v := range videoList {
+		RespVideoList = append(RespVideoList, assist.ToRespVideo(v))
+	}
 	c.JSON(http.StatusOK, VideoListResponse{
 		Response: Response{
 			StatusCode: 0,
 		},
-		VideoList: videoList,
+		VideoList: RespVideoList,
 	})
 }

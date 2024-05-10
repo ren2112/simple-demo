@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"github.com/RaymondCode/simple-demo/assist"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
 	"github.com/gin-gonic/gin"
@@ -99,18 +100,21 @@ func FavoriteAction(c *gin.Context) {
 // FavoriteList all users have same favorite video list
 func FavoriteList(c *gin.Context) {
 	userId := c.Query("user_id")
+
 	var favorites []model.Favorite
-	var videoList []model.Video
+	var resVideoList []model.RespVideo
 	common.DB.Preload("Video").Preload("Video.Author").Model(&model.Favorite{}).Where("user_id = ?", userId).Find(&favorites)
+
+	//设置视频结构体为为喜欢并且转换为响应结构体
 	for _, v := range favorites {
 		v.Video.IsFavorite = true
-		videoList = append(videoList, v.Video)
+		resVideoList = append(resVideoList, assist.ToRespVideo(v.Video))
 	}
 	c.JSON(http.StatusOK, VideoListResponse{
 		Response: Response{
 			StatusCode: 0,
 			StatusMsg:  "获取成功！",
 		},
-		VideoList: videoList,
+		VideoList: resVideoList,
 	})
 }

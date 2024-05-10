@@ -55,7 +55,7 @@ func CommentAction(c *gin.Context) {
 			Response: Response{StatusCode: 0},
 			Comment: model.RespComment{
 				Id:         comment.Id,
-				User:       user,
+				User:       assist.ToRespUser(user),
 				Content:    text,
 				CreateDate: comment.CreatedAt.Format("2006-01-02 15:04"),
 			},
@@ -79,16 +79,14 @@ func CommentAction(c *gin.Context) {
 // CommentList all videos have same demo comment list
 func CommentList(c *gin.Context) {
 	videoId := c.Query("video_id")
+
 	var comments []model.Comment
 	var respComments []model.RespComment
 	common.DB.Preload("User").Model(&model.Comment{}).Where("video_id=?", videoId).Order("created_at DESC").Find(&comments)
+
+	//转化为响应结构体
 	for _, v := range comments {
-		var respTmp model.RespComment
-		respTmp.Id = v.Id
-		respTmp.User = v.User
-		respTmp.CreateDate = v.CreatedAt.Format("2006-01-02 15:04")
-		respTmp.Content = v.Content
-		respComments = append(respComments, respTmp)
+		respComments = append(respComments, assist.ToRespComment(v))
 	}
 	c.JSON(http.StatusOK, CommentListResponse{
 		Response:    Response{StatusCode: 0},

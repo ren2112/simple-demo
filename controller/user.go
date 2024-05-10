@@ -1,13 +1,11 @@
 package controller
 
 import (
-	"fmt"
 	"github.com/RaymondCode/simple-demo/assist"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
-	"github.com/RaymondCode/simple-demo/utils"
 	"github.com/gin-gonic/gin"
-	"math/rand"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 )
 
@@ -23,7 +21,7 @@ type UserLoginResponse struct {
 
 type UserResponse struct {
 	Response
-	User model.User `json:"user"`
+	User model.RespUser `json:"user"`
 }
 
 func Register(c *gin.Context) {
@@ -36,12 +34,17 @@ func Register(c *gin.Context) {
 		})
 		return
 	} else {
-		salt := fmt.Sprintf("%06d", rand.Int31())
-		password = utils.MakePassword(password, salt)
+		//修改为bcrypt加密
+		hasedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusOK, UserLoginResponse{
+				Response: Response{StatusCode: 1, StatusMsg: "操作失败！"},
+			})
+			return
+		}
 		newUser := model.User{
 			Name:     username,
-			Password: password,
-			Salt:     salt,
+			Password: string(hasedPassword),
 		}
 		common.DB.Create(&newUser)
 		token, err := common.ReleaseToken(newUser)
@@ -63,6 +66,7 @@ func Login(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
 
+	//查找是否存在用户
 	user := assist.GetUserByName(username)
 	if user.Id == 0 {
 		c.JSON(http.StatusOK, UserLoginResponse{
@@ -70,12 +74,16 @@ func Login(c *gin.Context) {
 		})
 		return
 	}
-	if utils.ValidPassword(password, user.Salt, user.Password) == false {
+
+	//校验密码
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "用户名或者密码错误"},
 		})
 		return
 	}
+
+	//发放token
 	token, err := common.ReleaseToken(user)
 	if err != nil {
 		c.JSON(http.StatusOK, UserLoginResponse{
@@ -91,17 +99,15 @@ func Login(c *gin.Context) {
 }
 
 func UserInfo(c *gin.Context) {
-	tokenStr := c.Query("token")
-
-	_, claims, _ := common.ParseToken(tokenStr)
-	if user := assist.GetUserByID(claims.UserId); user.Id != 0 {
+	user, ok := c.Get("user")
+	if !ok {
 		c.JSON(http.StatusOK, UserResponse{
-			Response: Response{StatusCode: 0},
-			User:     user,
+			Response: Response{StatusCode: 1, StatusMsg: "用户不存在"},
 		})
 	} else {
 		c.JSON(http.StatusOK, UserResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "用户不存在"},
+			Response: Response{StatusCode: 0},
+			User:     assist.ToRespUser(user.(model.User)),
 		})
 	}
 }

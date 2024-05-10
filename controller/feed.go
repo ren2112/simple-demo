@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"github.com/RaymondCode/simple-demo/assist"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
 	"github.com/gin-gonic/gin"
@@ -12,8 +13,8 @@ import (
 
 type FeedResponse struct {
 	Response
-	VideoList []model.Video `json:"video_list,omitempty"`
-	NextTime  int64         `json:"next_time,omitempty"`
+	VideoList []model.RespVideo `json:"video_list,omitempty"`
+	NextTime  int64             `json:"next_time,omitempty"`
 }
 
 // Feed same demo video list for every request
@@ -36,7 +37,7 @@ func Feed(c *gin.Context) {
 	}
 	var videoList = []model.Video{}
 	latestTimeUTC := time.Unix(0, latestTime*int64(time.Millisecond))
-	common.DB.Preload("Author").Model(&model.Video{}).Where("created_at < ?", latestTimeUTC).Find(&videoList)
+	common.DB.Preload("Author").Order("created_at DESC").Model(&model.Video{}).Where("created_at < ?", latestTimeUTC).Find(&videoList)
 
 	for i, v := range videoList {
 		var userVideo model.UserVideo
@@ -60,6 +61,14 @@ func Feed(c *gin.Context) {
 		}
 	}
 
+	//将videoList的每个元素赋值给respvideoList
+	var respVideoList []model.RespVideo
+	for _, v := range videoList {
+		respVideo := assist.ToRespVideo(v)
+		respVideoList = append(respVideoList, respVideo)
+	}
+
+	//获取视频流里最早视频时间
 	var responseTime int64
 	if len(videoList) == 0 {
 		responseTime = time.Now().Unix()
@@ -68,7 +77,7 @@ func Feed(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, FeedResponse{
 		Response:  Response{StatusCode: 0},
-		VideoList: videoList,
+		VideoList: respVideoList,
 		NextTime:  responseTime * 1000,
 	})
 }

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"github.com/RaymondCode/simple-demo/assist"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
 	"github.com/gin-gonic/gin"
@@ -11,7 +12,7 @@ import (
 
 type UserListResponse struct {
 	Response
-	UserList []model.User `json:"user_list"`
+	UserList []model.RespUser `json:"user_list"`
 }
 
 // RelationAction no practical effect, just check if token is valid
@@ -53,23 +54,39 @@ func RelationAction(c *gin.Context) {
 				c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败！"})
 				return
 			}
+
+			// 更新关注者的关注数加一
+			if err := tx.Model(&model.User{}).Where("id = ?", user.(model.User).Id).Update("follow_count", gorm.Expr("follow_count + ?", 1)).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+				return
+			}
+
+			// 更新被关注者的粉丝数加一
+			if err := tx.Model(&model.User{}).Where("id = ?", targetID).Update("follower_count", gorm.Expr("follower_count + ?", 1)).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
+				return
+			}
+			//	如果已经存在告知不可重复关注
+		} else {
+			if err := tx.Create(&follow).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "请勿重复关注！"})
+				return
+			}
 		}
 
-		// 更新关注者的关注数加一
-		if err := tx.Model(&model.User{}).Where("id = ?", user.(model.User).Id).Update("follow_count", gorm.Expr("follow_count + ?", 1)).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
-			return
-		}
-
-		// 更新被关注者的粉丝数加一
-		if err := tx.Model(&model.User{}).Where("id = ?", targetID).Update("follower_count", gorm.Expr("follower_count + ?", 1)).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
-			return
-		}
 	case "2": // 取消关注用户
-		// 删除关注关系
+		// 删除关注关系，首先判断是否存在关注关系
+		var existingFollow model.Follow
+		result := tx.Where("user_id=? and follower_user_id=?", targetID, user.(model.User).Id).First(&existingFollow)
+		if result.RowsAffected == 0 {
+			tx.Rollback()
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "请勿重复取消关注！"})
+			return
+		}
+
 		if err := tx.Where("user_id = ? AND follower_user_id = ?", targetID, user.(model.User).Id).Delete(&model.Follow{}).Error; err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作失败"})
@@ -112,19 +129,20 @@ func FollowList(c *gin.Context) {
 		})
 	}
 
-	var userList []model.User
+	var respUserList []model.RespUser
 	var followList []model.Follow
 	common.DB.Model(&model.Follow{}).Preload("User").Where("follower_user_id=?", userId).Find(&followList)
+	//转换为响应结构体
 	for _, v := range followList {
 		v.User.IsFollow = true
-		userList = append(userList, v.User)
+		respUserList = append(respUserList, assist.ToRespUser(v.User))
 	}
 
 	c.JSON(http.StatusOK, UserListResponse{
 		Response: Response{
 			StatusCode: 0,
 		},
-		UserList: userList,
+		UserList: respUserList,
 	})
 }
 
@@ -138,21 +156,36 @@ func FollowerList(c *gin.Context) {
 			},
 			UserList: nil,
 		})
-		return
 	}
 
-	var userList []model.User
+	//获取发起请求的用户id，为了判断这个用户是否有对别人的粉丝列表里面的粉丝是否关注
+	sourceUser, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusOK, UserListResponse{
+			Response: Response{
+				StatusCode: 1,
+				StatusMsg:  "请先登录！",
+			},
+			UserList: nil,
+		})
+	}
+	sourceId := sourceUser.(model.User).Id
+
+	var respUserList []model.RespUser
 	var followerList []model.Follow
-	common.DB.Preload("FollowerUser").Model(&model.Follow{}).Where("user_id=?", userId).Find(&followerList)
+	common.DB.Model(&model.Follow{}).Preload("FollowerUser").Where("user_id=?", userId).Find(&followerList)
+	//转换结构体
 	for _, v := range followerList {
-		userList = append(userList, v.FollowerUser)
+		//注意，这里需要传递请求发起者的id，而不是user_id，因为user_id是被查看粉丝列表的人
+		v.FollowerUser.IsFollow = assist.IsFollowed(sourceId, v.FollowerUserId)
+		respUserList = append(respUserList, assist.ToRespUser(v.FollowerUser))
 	}
 
 	c.JSON(http.StatusOK, UserListResponse{
 		Response: Response{
 			StatusCode: 0,
 		},
-		UserList: userList,
+		UserList: respUserList,
 	})
 }
 
@@ -168,17 +201,33 @@ func FriendList(c *gin.Context) {
 		})
 	}
 
-	var userList []model.User
+	//获取发起请求的用户id，为了判断这个用户是否有对别人的粉丝列表里面的粉丝是否关注
+	sourceUser, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusOK, UserListResponse{
+			Response: Response{
+				StatusCode: 1,
+				StatusMsg:  "请先登录！",
+			},
+			UserList: nil,
+		})
+	}
+	sourceId := sourceUser.(model.User).Id
+
+	var respUserList []model.RespUser
 	var followerList []model.Follow
 	common.DB.Model(&model.Follow{}).Preload("FollowerUser").Where("user_id=?", userId).Find(&followerList)
+	//转换结构体
 	for _, v := range followerList {
-		userList = append(userList, v.FollowerUser)
+		//注意，这里需要传递请求发起者的id，而不是user_id，因为user_id是被查看粉丝列表的人
+		v.FollowerUser.IsFollow = assist.IsFollowed(sourceId, v.FollowerUserId)
+		respUserList = append(respUserList, assist.ToRespUser(v.FollowerUser))
 	}
 
 	c.JSON(http.StatusOK, UserListResponse{
 		Response: Response{
 			StatusCode: 0,
 		},
-		UserList: userList,
+		UserList: respUserList,
 	})
 }
