@@ -3,9 +3,8 @@ package middleware
 import (
 	"github.com/RaymondCode/simple-demo/assist"
 	"github.com/RaymondCode/simple-demo/common"
-	"github.com/RaymondCode/simple-demo/controller"
+	"github.com/RaymondCode/simple-demo/response"
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 func AuthMiddleware() gin.HandlerFunc {
@@ -17,24 +16,17 @@ func AuthMiddleware() gin.HandlerFunc {
 		token, claims, err := common.ParseToken(tokenString)
 		//token空或者不合法
 		if err != nil || !token.Valid {
-			ctx.JSON(http.StatusOK, controller.Response{
-				StatusCode: 1,
-				StatusMsg:  "User doesn't exist",
-			})
+			response.CommonResp(ctx, 1, "请登录或重新登陆")
 			ctx.Abort()
 			return
 		}
 		//校验user是否存在
-		if user := assist.GetUserByID(int64(claims.UserId)); user.Id != 0 {
+		if user := assist.GetUserByID(claims.UserId); user.Id != 0 {
 			ctx.Set("user", user)
 			ctx.Next()
 		} else {
-			ctx.JSON(http.StatusOK, controller.Response{
-				StatusCode: 1,
-				StatusMsg:  "User doesn't exist",
-			})
+			response.CommonResp(ctx, 1, "请登录或重新登陆")
 			ctx.Abort()
 		}
-
 	}
 }

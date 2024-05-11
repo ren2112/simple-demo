@@ -4,21 +4,11 @@ import (
 	"github.com/RaymondCode/simple-demo/assist"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
+	"github.com/RaymondCode/simple-demo/response"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"net/http"
 	"strconv"
 )
-
-type CommentListResponse struct {
-	Response
-	CommentList []model.RespComment `json:"comment_list,omitempty"`
-}
-
-type CommentActionResponse struct {
-	Response
-	Comment model.RespComment `json:"comment,omitempty"`
-}
 
 // CommentAction no practical effect, just check if token is valid
 func CommentAction(c *gin.Context) {
@@ -47,20 +37,20 @@ func CommentAction(c *gin.Context) {
 		tx.Create(&comment)
 
 		// 增加评论数
-		tx.Model(&model.Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count + ?", 1))
+		if err := tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
+			response.CommonResp(c, 1, err.Error())
+			return
+		}
 
 		tx.Commit()
 
-		c.JSON(http.StatusOK, CommentActionResponse{
-			Response: Response{StatusCode: 0},
-			Comment: model.RespComment{
-				Id:         comment.Id,
-				User:       assist.ToRespUser(user),
-				Content:    text,
-				CreateDate: comment.CreatedAt.Format("2006-01-02 15:04"),
-			},
-		})
-		return
+		respComment := model.RespComment{
+			Id:         comment.Id,
+			User:       assist.ToRespUser(user),
+			Content:    text,
+			CreateDate: comment.CreatedAt.Format("2006-01-02 15:04"),
+		}
+		response.CommentActionResponseFun(c, response.Response{StatusCode: 0}, respComment)
 	} else {
 		// 开启事务
 		tx := common.DB.Begin()
@@ -68,10 +58,14 @@ func CommentAction(c *gin.Context) {
 		tx.Where("id=?", commentId).Delete(&comment)
 
 		// 减少评论数
-		tx.Model(&model.Video{}).Where("id = ?", videoId).UpdateColumn("comment_count", gorm.Expr("comment_count - ?", 1))
+		if err := tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.Video{}).Where("id = ?", videoId).UpdateColumn("comment_count", gorm.Expr("comment_count - ?", 1)).Error; err != nil {
+			tx.Rollback()
+			response.CommonResp(c, 1, err.Error())
+			return
+		}
 
 		tx.Commit()
-		c.JSON(http.StatusOK, Response{StatusCode: 0})
+		response.CommonResp(c, 0, "")
 	}
 
 }
@@ -88,8 +82,5 @@ func CommentList(c *gin.Context) {
 	for _, v := range comments {
 		respComments = append(respComments, assist.ToRespComment(v))
 	}
-	c.JSON(http.StatusOK, CommentListResponse{
-		Response:    Response{StatusCode: 0},
-		CommentList: respComments,
-	})
+	response.CommentListResponseFun(c, response.Response{StatusCode: 0}, respComments)
 }

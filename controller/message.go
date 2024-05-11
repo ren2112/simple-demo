@@ -4,18 +4,11 @@ import (
 	"github.com/RaymondCode/simple-demo/assist"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
+	"github.com/RaymondCode/simple-demo/response"
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"strconv"
 	"time"
 )
-
-//var messageIdSequence = int64(1)
-
-type ChatResponse struct {
-	Response
-	MessageList []model.RespMessage `json:"message_list"`
-}
 
 // MessageAction no practical effect, just check if token is valid
 func MessageAction(c *gin.Context) {
@@ -23,7 +16,7 @@ func MessageAction(c *gin.Context) {
 	toUserId := c.Query("to_user_id")
 	content := c.Query("content")
 	if content == "" {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "消息不能为空!"})
+		response.CommonResp(c, 1, "消息不能为空")
 		return
 	}
 
@@ -35,9 +28,9 @@ func MessageAction(c *gin.Context) {
 		message.FromUserId = user.(model.User).Id
 		message.ToUserId = int64(userIdTarget)
 		common.DB.Create(&message)
-		c.JSON(http.StatusOK, Response{StatusCode: 0})
+		response.CommonResp(c, 0, "")
 	} else {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "用户不存在！"})
+		response.CommonResp(c, 1, "用户不存在！")
 	}
 }
 
@@ -52,7 +45,8 @@ func MessageChat(c *gin.Context) {
 		var err error
 		preMsgTime, err = strconv.ParseInt(preMsgTimeStr, 10, 64)
 		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "请求失败"})
+			response.CommonResp(c, 1, "请求失败")
+			return
 		}
 		preMsgTimeUTC := time.Unix(0, preMsgTime*int64(time.Millisecond))
 
@@ -69,8 +63,8 @@ func MessageChat(c *gin.Context) {
 			var resMessage = assist.ToRespMessage(v)
 			resMessageList = append(resMessageList, resMessage)
 		}
-		c.JSON(http.StatusOK, ChatResponse{Response: Response{StatusCode: 0}, MessageList: resMessageList})
+		response.ChatResponseFun(c, response.Response{StatusCode: 0}, resMessageList)
 	} else {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "用户不存在！"})
+		response.CommonResp(c, 1, "用户不存在！")
 	}
 }

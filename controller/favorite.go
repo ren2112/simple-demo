@@ -4,94 +4,106 @@ import (
 	"github.com/RaymondCode/simple-demo/assist"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
+	"github.com/RaymondCode/simple-demo/response"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"net/http"
 	"strconv"
 )
 
 // FavoriteAction no practical effect, just check if token is valid
 func FavoriteAction(c *gin.Context) {
-	tokenStr := c.Query("token")
-	_, claims, _ := common.ParseToken(tokenStr)
+	user, ok := c.Get("user")
+	if !ok {
+		response.CommonResp(c, 1, "请重新登陆！")
+		return
+	}
+	userId := user.(model.User).Id
+
 	videoID, err := strconv.Atoi(c.Query("video_id"))
 	if err != nil {
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 1,
-			StatusMsg:  err.Error(),
-		})
+		response.CommonResp(c, 1, err.Error())
 		return
 	}
 	actionType := c.Query("action_type")
 	var favorite model.Favorite
-	favorite.UserId = claims.UserId
+	favorite.UserId = userId
 	favorite.VideoId = int64(videoID)
+
+	//开启事务
 	tx := common.DB.Begin()
+
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, Response{
-				StatusCode: 1,
-				StatusMsg:  "操作失败！",
-			})
+			response.CommonServerError(c)
 		}
 	}()
 
 	var author model.User
 	var video model.Video
+
+	//获得视频作者的信息，因为要对视频作者的获赞数量更改
 	common.DB.Preload("Author").Where("id=?", videoID).First(&video)
 	author = video.Author
 	if actionType == "1" {
-		// 查看favorite表格是否存在数据，如果已经存在，则不处理
+		favorite.IsFavorite = true
+		// 查看favorite表格是否存在数据，如果已经存在且已经点过赞，则直接返回
 		var existingFavorite model.Favorite
-		if result := tx.Where("user_id = ? AND video_id = ?", claims.UserId, videoID).First(&existingFavorite); result.RowsAffected == 0 {
+		if result := tx.Where("user_id = ? AND video_id = ?", userId, videoID).First(&existingFavorite); result.RowsAffected == 0 {
 			tx.Create(&favorite)
-		}
-
-		// 更新UserVideo表，表示用户对该视频点赞
-		var userVideo model.UserVideo
-		if result := tx.Where("user_id = ? AND video_id = ?", claims.UserId, videoID).First(&userVideo); result.RowsAffected == 0 {
-			userVideo = model.UserVideo{
-				UserID:     claims.UserId,
-				VideoID:    int64(videoID),
-				IsFavorite: true,
-			}
-			tx.Create(&userVideo)
-		} else {
-			tx.Model(&userVideo).Where("user_id = ? AND video_id = ?", userVideo.UserID, userVideo.VideoID).Update("is_favorite", true)
+		} else if existingFavorite.IsFavorite == true {
+			response.CommonResp(c, 1, "请勿重复点赞")
+			return
+		} else { //将false更新为true
+			tx.Model(&model.Favorite{}).Where("user_id = ? AND video_id = ?", userId, videoID).Update("is_favorite", true)
 		}
 
 		// 更新视频的favorite_count字段
-		tx.Model(&model.Video{}).Where("id = ?", videoID).Update("favorite_count", gorm.Expr("favorite_count + ?", 1))
+		if err = tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.Video{}).Where("id = ?", videoID).Update("favorite_count", gorm.Expr("favorite_count + ?", 1)).Error; err != nil {
+			tx.Rollback()
+			response.CommonResp(c, 1, "操作失败")
+			return
+		}
 
 		// 更新视频作者的TotalFavorited字段
-		tx.Model(&model.User{}).Where("id = ?", author.Id).Update("total_favorited", gorm.Expr("total_favorited + ?", 1))
+		if err = tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.User{}).Where("id = ?", author.Id).Update("total_favorited", gorm.Expr("total_favorited + ?", 1)).Error; err != nil {
+			tx.Rollback()
+			response.CommonResp(c, 1, "操作失败")
+			return
+		}
 
 		// 更新用户的favorite_count字段
-		tx.Model(&model.User{}).Where("id = ?", claims.UserId).Update("favorite_count", gorm.Expr("favorite_count + ?", 1))
+		tx.Model(&model.User{}).Where("id = ?", userId).Update("favorite_count", gorm.Expr("favorite_count + ?", 1))
 
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 0,
-			StatusMsg:  "点赞成功",
-		})
+		response.CommonResp(c, 0, "点赞成功！")
 	} else {
-		tx.Where("user_id = ? AND video_id = ?", claims.UserId, videoID).Delete(&model.Favorite{})
-		// 更新UserVideo表，表示用户取消对该视频的点赞
-		tx.Model(&model.UserVideo{}).Where("user_id = ? AND video_id = ?", claims.UserId, videoID).Update("is_favorite", false)
+		//查找是否存在点赞记录，若没有或者已经是没点赞的状态下则无法取消点赞
+		var existFavorite model.Favorite
+		tx.Model(&model.Favorite{}).Where("user_id = ? AND video_id = ?", userId, videoID).First(&existFavorite)
+		if existFavorite.Id == 0 || existFavorite.IsFavorite == false {
+			response.CommonResp(c, 1, "请勿在没点赞情况下取消点赞")
+			return
+		}
 
+		tx.Model(&model.Favorite{}).Where("user_id = ? AND video_id = ?", userId, videoID).Update("is_favorite", false)
 		// 更新视频的favorite_count字段
-		tx.Model(&model.Video{}).Where("id = ?", videoID).Update("favorite_count", gorm.Expr("favorite_count - ?", 1))
+		if err = tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.Video{}).Where("id = ?", videoID).Update("favorite_count", gorm.Expr("favorite_count - ?", 1)).Error; err != nil {
+			tx.Rollback()
+			response.CommonResp(c, 1, "操作失败")
+			return
+		}
 
 		// 更新视频作者的TotalFavorited字段
-		tx.Model(&model.User{}).Where("id = ?", author.Id).Update("total_favorited", gorm.Expr("total_favorited - ?", 1))
+		if err = tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.User{}).Where("id = ?", author.Id).Update("total_favorited", gorm.Expr("total_favorited - ?", 1)).Error; err != nil {
+			tx.Rollback()
+			response.CommonResp(c, 1, "操作失败")
+			return
+		}
 
 		// 更新用户的favorite_count字段
-		tx.Model(&model.User{}).Where("id = ?", claims.UserId).Update("favorite_count", gorm.Expr("favorite_count - ?", 1))
+		tx.Model(&model.User{}).Where("id = ?", userId).Update("favorite_count", gorm.Expr("favorite_count - ?", 1))
 
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 0,
-			StatusMsg:  "取消点赞成功",
-		})
+		response.CommonResp(c, 0, "取消点赞成功")
 	}
 
 	tx.Commit()
@@ -110,11 +122,6 @@ func FavoriteList(c *gin.Context) {
 		v.Video.IsFavorite = true
 		resVideoList = append(resVideoList, assist.ToRespVideo(v.Video))
 	}
-	c.JSON(http.StatusOK, VideoListResponse{
-		Response: Response{
-			StatusCode: 0,
-			StatusMsg:  "获取成功！",
-		},
-		VideoList: resVideoList,
-	})
+
+	response.VideoListResponseFun(c, response.Response{StatusCode: 0, StatusMsg: "获取成功！"}, resVideoList)
 }
