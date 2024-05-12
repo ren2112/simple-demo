@@ -6,7 +6,7 @@ type User struct {
 	Id              int64     `json:"id,omitempty"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
-	Name            string    `json:"name,omitempty"`
+	Name            string    `json:"name,omitempty" gorm:"index"`
 	Avatar          string    `json:"avatar"`
 	BackgroundImage string    `json:"background_image"`
 	Signature       string    `json:"signature"`

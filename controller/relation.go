@@ -52,21 +52,21 @@ func RelationAction(c *gin.Context) {
 			}
 
 			// 更新关注者的关注数加一
-			if err := tx.Model(&model.User{}).Where("id = ?", user.(model.User).Id).Update("follow_count", gorm.Expr("follow_count + ?", 1)).Error; err != nil {
+			if err = tx.Model(&model.User{}).Where("id = ?", user.(model.User).Id).Update("follow_count", gorm.Expr("follow_count + ?", 1)).Error; err != nil {
 				tx.Rollback()
 				response.CommonResp(c, 1, "操作失败")
 				return
 			}
 
 			// 更新被关注者的粉丝数加一
-			if err := tx.Model(&model.User{}).Where("id = ?", targetID).Update("follower_count", gorm.Expr("follower_count + ?", 1)).Error; err != nil {
+			if err = tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.User{}).Where("id = ?", targetID).Update("follower_count", gorm.Expr("follower_count + ?", 1)).Error; err != nil {
 				tx.Rollback()
 				response.CommonResp(c, 1, "操作失败")
 				return
 			}
 			//	如果已经存在告知不可重复关注
 		} else {
-			if err := tx.Create(&follow).Error; err != nil {
+			if err = tx.Create(&follow).Error; err != nil {
 				tx.Rollback()
 				response.CommonResp(c, 1, "请勿重复关注")
 				return
@@ -83,21 +83,21 @@ func RelationAction(c *gin.Context) {
 			return
 		}
 
-		if err := tx.Where("user_id = ? AND follower_user_id = ?", targetID, user.(model.User).Id).Delete(&model.Follow{}).Error; err != nil {
+		if err = tx.Where("user_id = ? AND follower_user_id = ?", targetID, user.(model.User).Id).Delete(&model.Follow{}).Error; err != nil {
 			tx.Rollback()
 			response.CommonResp(c, 1, "操作失败")
 			return
 		}
 
 		// 更新关注者的关注数减一
-		if err := tx.Model(&model.User{}).Where("id = ?", user.(model.User).Id).Update("follow_count", gorm.Expr("follow_count - ?", 1)).Error; err != nil {
+		if err = tx.Model(&model.User{}).Where("id = ?", user.(model.User).Id).Update("follow_count", gorm.Expr("follow_count - ?", 1)).Error; err != nil {
 			tx.Rollback()
 			response.CommonResp(c, 1, "操作失败")
 			return
 		}
 
 		// 更新被关注者的粉丝数减一
-		if err := tx.Model(&model.User{}).Where("id = ?", targetID).Update("follower_count", gorm.Expr("follower_count - ?", 1)).Error; err != nil {
+		if err = tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.User{}).Where("id = ?", targetID).Update("follower_count", gorm.Expr("follower_count - ?", 1)).Error; err != nil {
 			tx.Rollback()
 			response.CommonResp(c, 1, "操作失败")
 			return

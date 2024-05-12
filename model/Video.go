@@ -3,12 +3,11 @@ package model
 import "time"
 
 type Video struct {
-	Id        int64 `json:"id,omitempty"`
-	CreatedAt time.Time
-	AuthorID  int64 `json:"author_id,omitempty" gorm:"column:author_id;index;references:User"`
-	Author    User  `json:"author,omitempty" gorm:"foreignKey:AuthorID"`
-	//点赞的情况时候需要用到多对多
-	Users         []User `gorm:"many2many:user_videos;association_autoupdate:false"`
+	Id        int64     `json:"id,omitempty"`
+	CreatedAt time.Time `gorm:"index"`
+	AuthorID  int64     `json:"author_id,omitempty" gorm:"column:author_id;index;references:User"`
+	Author    User      `json:"author,omitempty" gorm:"foreignKey:AuthorID"`
+	//Users         []User
 	Title         string `json:"title"`
 	PlayUrl       string `json:"play_url,omitempty"`
 	CoverUrl      string `json:"cover_url,omitempty"`

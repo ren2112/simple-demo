@@ -30,7 +30,6 @@ func InitDB() {
 	}
 	//DB.AutoMigrate(&model.User{})
 	//DB.AutoMigrate(&model.Video{})
-	//DB.AutoMigrate(&model.UserVideo{})
 	//DB.AutoMigrate(&model.Favorite{})
 	//DB.AutoMigrate(&model.Comment{})
 	//DB.AutoMigrate(&model.Follow{})
