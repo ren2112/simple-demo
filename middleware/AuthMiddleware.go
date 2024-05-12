@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	"github.com/RaymondCode/simple-demo/assist"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/response"
+	"github.com/RaymondCode/simple-demo/service"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,7 +21,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 		//校验user是否存在
-		if user := assist.GetUserByID(claims.UserId); user.Id != 0 {
+		if user := service.GetUserByID(claims.UserId); user.Id != 0 {
 			ctx.Set("user", user)
 			ctx.Next()
 		} else {

@@ -1,10 +1,9 @@
 package controller
 
 import (
-	"github.com/RaymondCode/simple-demo/assist"
-	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
 	"github.com/RaymondCode/simple-demo/response"
+	"github.com/RaymondCode/simple-demo/service"
 	"github.com/gin-gonic/gin"
 	"strconv"
 	"time"
@@ -22,12 +21,10 @@ func MessageAction(c *gin.Context) {
 
 	if user, exist := c.Get("user"); exist {
 		//添加信息于数据库
-		userIdTarget, _ := strconv.Atoi(toUserId)
-		var message model.Message
-		message.Content = content
-		message.FromUserId = user.(model.User).Id
-		message.ToUserId = int64(userIdTarget)
-		common.DB.Create(&message)
+		err := service.CreateMessage(toUserId, content, user.(model.User).Id)
+		if err != nil {
+			response.CommonResp(c, 1, "发送消息失败请重试")
+		}
 		response.CommonResp(c, 0, "")
 	} else {
 		response.CommonResp(c, 1, "用户不存在！")
@@ -43,6 +40,8 @@ func MessageChat(c *gin.Context) {
 	if user, exist := c.Get("user"); exist {
 		var preMsgTime int64
 		var err error
+
+		//处理时间
 		preMsgTime, err = strconv.ParseInt(preMsgTimeStr, 10, 64)
 		if err != nil {
 			response.CommonResp(c, 1, "请求失败")
@@ -50,20 +49,14 @@ func MessageChat(c *gin.Context) {
 		}
 		preMsgTimeUTC := time.Unix(0, preMsgTime*int64(time.Millisecond))
 
-		userIdTarget, _ := strconv.Atoi(toUserId)
 		fromUserId := user.(model.User).Id
-		var messageList []model.Message
-		common.DB.Where("(to_user_id = ? AND from_user_id = ?) OR (to_user_id = ? AND from_user_id = ?)", userIdTarget, fromUserId, fromUserId, userIdTarget).
-			Where("created_at > ?", preMsgTimeUTC).
-			Order("created_at").
-			Find(&messageList)
-
 		var resMessageList []model.RespMessage
-		for _, v := range messageList {
-			var resMessage = assist.ToRespMessage(v)
-			resMessageList = append(resMessageList, resMessage)
+		resMessageList, err = service.GetMessageList(toUserId, fromUserId, preMsgTimeUTC)
+		if err != nil {
+			response.CommonResp(c, 1, "获取聊天列表失败！")
+		} else {
+			response.ChatResponseFun(c, response.Response{StatusCode: 0}, resMessageList)
 		}
-		response.ChatResponseFun(c, response.Response{StatusCode: 0}, resMessageList)
 	} else {
 		response.CommonResp(c, 1, "用户不存在！")
 	}

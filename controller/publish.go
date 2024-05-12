@@ -2,10 +2,9 @@ package controller
 
 import (
 	"fmt"
-	"github.com/RaymondCode/simple-demo/assist"
-	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
 	"github.com/RaymondCode/simple-demo/response"
+	"github.com/RaymondCode/simple-demo/service"
 	"github.com/RaymondCode/simple-demo/utils"
 	"github.com/gin-gonic/gin"
 	"path/filepath"
@@ -38,7 +37,7 @@ func Publish(c *gin.Context) {
 	}
 
 	saveFile := filepath.Join("./public/", finalName)
-	if err := c.SaveUploadedFile(data, saveFile); err != nil {
+	if err = c.SaveUploadedFile(data, saveFile); err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return
 	}
@@ -59,34 +58,12 @@ func Publish(c *gin.Context) {
 	video.Title = title
 	video.AuthorID = author.Id
 
-	// 开始事务
-	tx := common.DB.Begin()
-
-	// 创建视频
-	if err := tx.Create(&video).Error; err != nil {
-		// 如果创建视频时出现错误，回滚事务
-		tx.Rollback()
-		// 返回错误
+	err = service.PublishVideo(video, author)
+	if err != nil {
 		response.CommonResp(c, 1, err.Error())
-		return
+	} else {
+		response.CommonResp(c, 0, finalName+" uploaded successfully")
 	}
-
-	// 更新作者的work_count字段
-	author.WorkCount++
-
-	// 使用UpdateColumn更新作品计数字段
-	if err := tx.Model(&author).UpdateColumn("work_count", author.WorkCount).Error; err != nil {
-		// 如果更新作者信息时出现错误，回滚事务
-		tx.Rollback()
-		// 返回错误
-		response.CommonResp(c, 1, err.Error())
-		return
-	}
-
-	// 提交事务
-	tx.Commit()
-	response.CommonResp(c, 0, finalName+" uploaded successfully")
-	return
 }
 
 // PublishList all users have same publish video list
@@ -95,13 +72,14 @@ func PublishList(c *gin.Context) {
 	if err != nil {
 		response.CommonResp(c, 1, "操作失败")
 	}
-	videoList := []model.Video{}
-	RespVideoList := []model.RespVideo{}
-	common.DB.Preload("Author").Model(&videoList).Where("author_id=?", int64(userId)).Find(&videoList)
 
-	//将videoList转化为响应结构体
-	for _, v := range videoList {
-		RespVideoList = append(RespVideoList, assist.ToRespVideo(v))
+	//获取发布列表
+	var RespVideoList []model.RespVideo
+	RespVideoList, err = service.GetPublishVideoList(int64(userId))
+	if err != nil {
+		response.CommonResp(c, 1, err.Error())
+	} else {
+		response.VideoListResponseFun(c, response.Response{StatusCode: 0}, RespVideoList)
 	}
-	response.VideoListResponseFun(c, response.Response{StatusCode: 0}, RespVideoList)
+
 }

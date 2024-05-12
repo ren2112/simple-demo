@@ -1,12 +1,13 @@
 package controller
 
 import (
-	"github.com/RaymondCode/simple-demo/assist"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
 	"github.com/RaymondCode/simple-demo/response"
+	"github.com/RaymondCode/simple-demo/service"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
+	"strconv"
 )
 
 // usersLoginInfo use map to store user info, and key is username+password for demo
@@ -17,7 +18,7 @@ func Register(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
 
-	if user := assist.GetUserByName(username); user.Id != 0 {
+	if user := service.GetUserByName(username); user.Id != 0 {
 		response.UserLoginRespFail(c, "用户已存在")
 		return
 	} else {
@@ -31,7 +32,15 @@ func Register(c *gin.Context) {
 			Name:     username,
 			Password: string(hasedPassword),
 		}
-		common.DB.Create(&newUser)
+
+		//调用服务层数据库操作
+		err = service.CreateUser(newUser)
+		if err != nil {
+			response.UserLoginRespFail(c, "注册失败！")
+			return
+		}
+
+		//获取token
 		token, err := common.ReleaseToken(newUser)
 		if err != nil {
 			response.UserLoginRespFail(c, "发送token失败")
@@ -46,7 +55,7 @@ func Login(c *gin.Context) {
 	password := c.Query("password")
 
 	//查找是否存在用户
-	user := assist.GetUserByName(username)
+	user := service.GetUserByName(username)
 	if user.Id == 0 {
 		response.UserLoginRespFail(c, "用户名或者密码错误")
 		return
@@ -68,10 +77,14 @@ func Login(c *gin.Context) {
 }
 
 func UserInfo(c *gin.Context) {
-	user, ok := c.Get("user")
-	if !ok {
+	userId, err := strconv.Atoi(c.Query("user_id"))
+	if err != nil {
+		response.UserLoginRespFail(c, "用户不存在")
+	}
+	user := service.GetUserByID(int64(userId))
+	if user.Id == 0 {
 		response.UserLoginRespFail(c, "用户不存在")
 	} else {
-		response.UserResponseFun(c, assist.ToRespUser(user.(model.User)))
+		response.UserResponseFun(c, service.ToRespUser(user))
 	}
 }

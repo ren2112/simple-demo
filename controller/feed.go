@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"github.com/RaymondCode/simple-demo/assist"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
 	"github.com/RaymondCode/simple-demo/response"
+	"github.com/RaymondCode/simple-demo/service"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"strconv"
@@ -29,20 +29,29 @@ func Feed(c *gin.Context) {
 	}
 	var videoList = []model.Video{}
 	latestTimeUTC := time.Unix(0, latestTime*int64(time.Millisecond))
-	common.DB.Preload("Author").Order("created_at DESC").Model(&model.Video{}).Where("created_at < ?", latestTimeUTC).Find(&videoList)
+
+	videoList, err = service.FeedVideoList(latestTimeUTC)
+	if err != nil {
+		response.CommonResp(c, 1, "请求视频失败")
+		return
+	}
 
 	//若用户登录了，需要判断视频作者是否关注以及是否对视频点赞
 	if claims.UserId != 0 {
 		for i, v := range videoList {
-			var userVideo model.Favorite
 			//查找是否点赞
-			common.DB.Where("user_id=? and video_id=?", claims.UserId, v.Id).First(&userVideo)
-			videoList[i].IsFavorite = userVideo.IsFavorite
+			var isFavorite bool
+			isFavorite, err = service.JudgeFavorite(claims.UserId, v.Id)
+			if err != nil {
+				response.CommonResp(c, 1, "点赞数据请求失败！")
+			}
+			videoList[i].IsFavorite = isFavorite
 
 			//	查找videoList的author里面is_follow
 			// 查找作者是否被当前用户关注
-			var follow model.Follow
-			err = common.DB.Where("user_id = ? AND follower_user_id = ?", v.Author.Id, claims.UserId).First(&follow).Error
+			//var follow model.Follow
+			//err = common.DB.Where("user_id = ? AND follower_user_id = ?", v.Author.Id, claims.UserId).First(&follow).Error
+			err = service.JudgeRelation(v.AuthorID, claims.UserId)
 			if err == nil {
 				videoList[i].Author.IsFollow = true
 			} else if err == gorm.ErrRecordNotFound {
@@ -57,7 +66,7 @@ func Feed(c *gin.Context) {
 	//将videoList的每个元素赋值给respvideoList
 	var respVideoList []model.RespVideo
 	for _, v := range videoList {
-		respVideo := assist.ToRespVideo(v)
+		respVideo := service.ToRespVideo(v)
 		respVideoList = append(respVideoList, respVideo)
 	}
 
