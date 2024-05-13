@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/RaymondCode/simple-demo/common"
+	"github.com/RaymondCode/simple-demo/config"
 	"github.com/RaymondCode/simple-demo/model"
 	"gorm.io/gorm"
 )
@@ -33,7 +34,7 @@ func CommentAction(actionType string, user model.User, videoId int64, text strin
 			Id:         comment.Id,
 			User:       ToRespUser(user),
 			Content:    text,
-			CreateDate: comment.CreatedAt.Format("2006-01-02 15:04"),
+			CreateDate: comment.CreatedAt.Format(config.DATETIME_FORMAT),
 		}
 		return nil
 	} else {

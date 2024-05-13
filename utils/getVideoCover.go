@@ -3,13 +3,12 @@ package utils
 import (
 	"bytes"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"os/exec"
 	"path/filepath"
 )
 
-func ExtractFirstFrame(videoPath, finalName string, c *gin.Context) (string, error) {
-	framePath := filepath.Join("public", "cover", "frame_"+finalName+".jpg") // 定义提取的帧图像保存路径
+func ExtractFirstFrame(videoPath, finalName string) (string, error) {
+	framePath := filepath.Join("public", "covers", finalName+".jpg") // 定义提取的帧图像保存路径
 
 	cmd := exec.Command("ffmpeg", "-y", "-i", videoPath, "-vframes", "1", framePath)
 
@@ -21,10 +20,5 @@ func ExtractFirstFrame(videoPath, finalName string, c *gin.Context) (string, err
 		return "", err
 	}
 
-	ipv4, err := GetLocalIPv4()
-	if err != nil {
-		return "", err
-	}
-
-	return "http://" + ipv4 + ":8080/static/cover/frame_" + finalName + ".jpg", nil // 返回提取的帧图像的 URL
+	return "covers/" + finalName + ".jpg", nil // 返回提取的帧图像的 URL
 }

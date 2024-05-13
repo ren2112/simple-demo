@@ -1,8 +1,16 @@
 package service
 
 import (
+	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
+	"github.com/RaymondCode/simple-demo/config"
 	"github.com/RaymondCode/simple-demo/model"
+	"github.com/gin-gonic/gin"
+	"mime/multipart"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -23,6 +31,7 @@ func ToRespVideo(video model.Video) model.RespVideo {
 func FeedVideoList(latestTimeUTC time.Time) (videoList []model.Video, err error) {
 	err = common.DB.Preload("Author").
 		Order("created_at DESC").
+		Limit(config.VIDEO_STREAM_BATCH_SIZE).
 		Model(&model.Video{}).
 		Where("created_at < ?", latestTimeUTC).
 		Find(&videoList).Error
@@ -83,4 +92,54 @@ func GetPublishVideoList(userId int64) ([]model.RespVideo, error) {
 		RespVideoList = append(RespVideoList, ToRespVideo(v))
 	}
 	return RespVideoList, err
+}
+
+// CompressAndUploadVideo 压缩视频并上传至指定目录
+func CompressAndUploadVideo(c *gin.Context, data *multipart.FileHeader, author *model.User) (string, error) {
+	// 确保public/tmp_videos/目录存在
+	tmpVideosPath := "./public/tmp_videos/"
+	err := os.MkdirAll(tmpVideosPath, 0755)
+	if err != nil && !os.IsExist(err) {
+		return "", err
+	}
+	defer func() {
+		// 清理临时文件，注意实际应用中需谨慎处理，避免删除非预期文件
+		_ = os.RemoveAll(tmpVideosPath)
+	}()
+
+	// 使用public下的临时目录
+	tempDir := tmpVideosPath
+	originalFilePath := filepath.Join(tempDir, data.Filename)
+
+	// 保存上传的原始视频到临时目录
+	if err = c.SaveUploadedFile(data, originalFilePath); err != nil {
+		return "", err
+	}
+
+	// 定义压缩后的视频文件名
+	compressedFilePath := filepath.Join(tempDir, "compressed_"+data.Filename)
+
+	// 使用FFmpeg命令压缩视频
+	ffmpegArgs := []string{
+		"-i", originalFilePath,
+		"-c:v", "libx264",
+		"-preset", "medium",
+		"-crf", "23",
+		"-c:a", "aac",
+		"-b:a", "128k",
+		compressedFilePath,
+	}
+	cmd := exec.Command("ffmpeg", ffmpegArgs...)
+	if err = cmd.Run(); err != nil {
+		return "", err
+	}
+
+	// 上传压缩后的视频到public/videos目录
+	finalName := fmt.Sprintf("%d_%s", author.Id, strings.TrimSuffix(data.Filename, filepath.Ext(data.Filename)))
+	saveFile := filepath.Join("./public/videos/", finalName+".mp4")
+	if err = os.Rename(compressedFilePath, saveFile); err != nil {
+		return "", err
+	}
+
+	return "videos/" + finalName + ".mp4", nil
 }

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/RaymondCode/simple-demo/config"
 	"github.com/RaymondCode/simple-demo/model"
 	"github.com/RaymondCode/simple-demo/response"
 	"github.com/RaymondCode/simple-demo/service"
@@ -36,20 +37,16 @@ func Publish(c *gin.Context) {
 		return
 	}
 
-	saveFile := filepath.Join("./public/", finalName)
-	if err = c.SaveUploadedFile(data, saveFile); err != nil {
-		response.CommonResp(c, 1, err.Error())
-		return
-	}
-	serverIp, err := utils.GetLocalIPv4()
+	// 增加视频压缩上传逻辑
+	playUrl, err := service.CompressAndUploadVideo(c, data, &author)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return
 	}
-	video.PlayUrl = "http://" + serverIp + ":8080/static/" + fmt.Sprintf("%d_%s", author.Id, filename)
+	video.PlayUrl = playUrl
 
 	//获得封面并且保存封面图片于服务器
-	video.CoverUrl, err = utils.ExtractFirstFrame(video.PlayUrl, finalName, c)
+	video.CoverUrl, err = utils.ExtractFirstFrame(config.SERVER_RESOURCES+video.PlayUrl, finalName)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return

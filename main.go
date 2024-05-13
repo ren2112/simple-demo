@@ -2,13 +2,13 @@ package main
 
 import (
 	"github.com/RaymondCode/simple-demo/common"
-	"github.com/RaymondCode/simple-demo/service"
+	//"github.com/RaymondCode/simple-demo/service"
 	"github.com/RaymondCode/simple-demo/utils"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	go service.RunMessageServer()
+	//go service.RunMessageServer()
 
 	utils.InitConfig()
 	common.InitDB()

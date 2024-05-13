@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/RaymondCode/simple-demo/common"
+	"github.com/RaymondCode/simple-demo/config"
 	"github.com/RaymondCode/simple-demo/model"
 	"github.com/RaymondCode/simple-demo/response"
 	"github.com/RaymondCode/simple-demo/service"
@@ -28,9 +29,13 @@ func Register(c *gin.Context) {
 			response.UserLoginRespFail(c, "注册失败")
 			return
 		}
+		//创建新用户
 		newUser := model.User{
-			Name:     username,
-			Password: string(hasedPassword),
+			Name:            username,
+			Password:        string(hasedPassword),
+			Avatar:          config.DEFAULT_USER_AVATAR_URL,
+			BackgroundImage: config.DEFAULT_USER_BG_IMAGE_URL,
+			Signature:       config.DEFAULT_USER_BIO,
 		}
 
 		//调用服务层数据库操作

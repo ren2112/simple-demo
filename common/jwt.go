@@ -1,12 +1,13 @@
 package common
 
 import (
+	"github.com/RaymondCode/simple-demo/config"
 	"github.com/RaymondCode/simple-demo/model"
 	"github.com/dgrijalva/jwt-go"
 	"time"
 )
 
-var jwtKey = []byte("a_secret_key")
+var jwtKey = []byte(config.AUTH_KEY)
 
 type Claims struct {
 	UserId int64

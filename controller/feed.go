@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/RaymondCode/simple-demo/common"
+	"github.com/RaymondCode/simple-demo/config"
 	"github.com/RaymondCode/simple-demo/model"
 	"github.com/RaymondCode/simple-demo/response"
 	"github.com/RaymondCode/simple-demo/service"
@@ -67,6 +68,9 @@ func Feed(c *gin.Context) {
 	var respVideoList []model.RespVideo
 	for _, v := range videoList {
 		respVideo := service.ToRespVideo(v)
+		//补全视频url
+		respVideo.PlayUrl = config.SERVER_RESOURCES + v.PlayUrl
+		respVideo.CoverUrl = config.SERVER_RESOURCES + v.CoverUrl
 		respVideoList = append(respVideoList, respVideo)
 	}
 
