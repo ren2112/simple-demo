@@ -59,15 +59,22 @@ func Login(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
 
-	//查找是否存在用户
-	user := service.GetUserByName(username)
-	if user.Id == 0 {
-		response.UserLoginRespFail(c, "用户名或者密码错误")
-		return
+	//从redis缓存找
+	userPointerFromRedis, err := common.GetCachedUser(c, username)
+	var user model.User
+	if err == nil && userPointerFromRedis != nil {
+		user = *userPointerFromRedis
+	} else {
+		//如果缓存没找到，则用数据库查找是否存在用户
+		user = service.GetUserByName(username)
+		if user.Id == 0 {
+			response.UserLoginRespFail(c, "用户名或者密码错误")
+			return
+		}
 	}
 
 	//校验密码
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		response.UserLoginRespFail(c, "用户名或者密码错误")
 		return
 	}

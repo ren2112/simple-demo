@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/response"
 	"github.com/RaymondCode/simple-demo/service"
@@ -20,8 +21,25 @@ func AuthMiddleware() gin.HandlerFunc {
 			ctx.Abort()
 			return
 		}
-		//校验user是否存在
+		//检查token是否在redis的黑名单里面
+		if common.CheckTokenInBlacklist(ctx, tokenString) {
+			response.CommonResp(ctx, 1, "你被加入黑名单！24h后解封！")
+		}
+
+		//尝试从缓存获得用户信息
+		cachedUser, err := common.GetCachedUser(ctx, claims.UserName)
+		if err == nil && cachedUser != nil {
+			ctx.Set("user", *cachedUser)
+			ctx.Next()
+			return
+		}
+
+		//缓存没有数据
 		if user := service.GetUserByID(claims.UserId); user.Id != 0 {
+			err = common.CacheUser(ctx, claims.UserName, user)
+			if err != nil {
+				fmt.Println("缓存用户失败！", err)
+			}
 			ctx.Set("user", user)
 			ctx.Next()
 		} else {

@@ -10,14 +10,16 @@ import (
 var jwtKey = []byte(config.AUTH_KEY)
 
 type Claims struct {
-	UserId int64
+	UserId   int64
+	UserName string
 	jwt.StandardClaims
 }
 
 func ReleaseToken(user model.User) (string, error) {
 	expirationTime := time.Now().Add(7 * 24 * time.Hour)
 	claims := &Claims{
-		UserId: user.Id,
+		UserId:   user.Id,
+		UserName: user.Name,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 			Issuer:    "zhoujp",

@@ -12,6 +12,7 @@ func main() {
 
 	utils.InitConfig()
 	common.InitDB()
+	common.InitRedis()
 
 	r := gin.Default()
 
