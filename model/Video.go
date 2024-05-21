@@ -1,12 +1,10 @@
 package model
 
-import "time"
-
 type Video struct {
-	Id        int64     `json:"id,omitempty"`
-	CreatedAt time.Time `gorm:"index"`
-	AuthorID  int64     `json:"author_id,omitempty" gorm:"column:author_id;index;references:User"`
-	Author    User      `json:"author,omitempty" gorm:"foreignKey:AuthorID"`
+	Id        int64 `json:"id,omitempty"`
+	CreatedAt int64 `gorm:"index"`
+	AuthorID  int64 `json:"author_id,omitempty" gorm:"column:author_id;index;references:User"`
+	Author    User  `json:"author,omitempty" gorm:"foreignKey:AuthorID"`
 	//Users         []User
 	Title         string `json:"title"`
 	PlayUrl       string `json:"play_url,omitempty"`

@@ -1,7 +1,7 @@
 package response
 
 import (
-	pb "github.com/RaymondCode/simple-demo/controller/proto"
+	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )

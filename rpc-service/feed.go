@@ -6,7 +6,7 @@ import (
 	"github.com/RaymondCode/simple-demo/common"
 	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"github.com/RaymondCode/simple-demo/service"
-	"github.com/golang/protobuf/proto"
+	"github.com/RaymondCode/simple-demo/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"gorm.io/gorm"
@@ -19,22 +19,18 @@ type VideoServer struct {
 }
 
 func (v VideoServer) GetFeedList(ctx context.Context, req *pb.DouyinFeedRequest) (*pb.DouyinFeedResponse, error) {
-	_, claims, _ := common.ParseToken(*req.Token)
+	_, claims, _ := common.ParseToken(req.Token)
 
 	//转化时间
-	latestTime := *req.LatestTime
-	var err error
+	latestTime := req.LatestTime
 	if latestTime == 0 {
-		latestTime = time.Now().Unix() * 1000
+		latestTime = time.Now().Unix()
 	}
-	if err != nil {
-		return nil, err
-	}
+
 	var videoList = []*pb.Video{}
-	latestTimeUTC := time.Unix(0, latestTime*int64(time.Millisecond))
 
 	//获取视频流
-	videoList, err = service.FeedVideoList(latestTimeUTC)
+	videoList, err := service.FeedVideoList(latestTime)
 	if err != nil {
 		return nil, err
 	}
@@ -44,38 +40,52 @@ func (v VideoServer) GetFeedList(ctx context.Context, req *pb.DouyinFeedRequest)
 		for i, v := range videoList {
 			//查找是否点赞
 			var isFavorite bool
-			isFavorite, err = service.JudgeFavorite(claims.UserId, *v.Id)
+			isFavorite, err = service.JudgeFavorite(claims.UserId, v.Id)
 			if err != nil {
 				return nil, err
 			}
-			*videoList[i].IsFavorite = isFavorite
+			videoList[i].IsFavorite = isFavorite
 
 			//	查找videoList的author里面is_follow
 			// 查找作者是否被当前用户关注
-			err = service.JudgeRelation(*v.Author.Id, claims.UserId)
+			err = service.JudgeRelation(v.Author.Id, claims.UserId)
 			if err == nil {
-				*videoList[i].Author.IsFollow = true
+				videoList[i].Author.IsFollow = true
 			} else if err == gorm.ErrRecordNotFound {
-				*videoList[i].Author.IsFollow = false
+				videoList[i].Author.IsFollow = false
 			} else {
 				return nil, err
 			}
 		}
 	}
-	responseTime := videoList[len(videoList)-1].CreatedAt
-	return &pb.DouyinFeedResponse{StatusCode: proto.Int(0), StatusMsg: proto.String("获取成功！"), VideoList: videoList, NextTime: responseTime}, nil
+	var responseTime int64
+	if len(videoList) == 0 {
+		responseTime = time.Now().Unix()
+	} else {
+		responseTime = videoList[len(videoList)-1].CreatedAt
+	}
+	return &pb.DouyinFeedResponse{StatusCode: 0, StatusMsg: "获取成功！", VideoList: videoList, NextTime: responseTime}, nil
 }
 
 func main() {
+	utils.InitConfig()
 	common.InitDB()
-	listen, _ := net.Listen("tcp", ":9090")
-	grpcServer := grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
-	//在grpc服务端注册服务
-	pb.RegisterVideoServiceServer(grpcServer, &VideoServer{})
-	//	启动服务
-	err := grpcServer.Serve(listen)
+	listen, err := net.Listen("tcp", ":9091")
 	if err != nil {
-		fmt.Printf("启动grpc服务端失败！%v", err)
+		fmt.Printf("无法启动监听：%v\n", err)
+		return
+	}
+
+	// 创建 gRPC 服务器对象
+	grpcServer := grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
+
+	// 在 gRPC 服务器上注册服务
+	pb.RegisterVideoServiceServer(grpcServer, &VideoServer{})
+
+	// 启动 gRPC 服务
+	fmt.Println("启动 gRPC 服务...")
+	if err := grpcServer.Serve(listen); err != nil {
+		fmt.Printf("启动 gRPC 服务失败：%v\n", err)
 		return
 	}
 }

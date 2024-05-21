@@ -12,7 +12,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 func ToRespVideo(video model.Video) model.RespVideo {
@@ -29,18 +28,37 @@ func ToRespVideo(video model.Video) model.RespVideo {
 	return respVideo
 }
 
-func FeedVideoList(latestTimeUTC time.Time) (videoList []*pb.Video, err error) {
+func ToProtoVideo(video model.Video) pb.Video {
+	protoUser := ToProtoUser(video.Author)
+	respVideo := pb.Video{
+		Id:            video.Id,
+		Author:        &protoUser,
+		Title:         video.Title,
+		PlayUrl:       video.PlayUrl,
+		CoverUrl:      video.CoverUrl,
+		FavoriteCount: video.FavoriteCount,
+		CommentCount:  video.CommentCount,
+		IsFavorite:    video.IsFavorite,
+	}
+	return respVideo
+}
+
+func FeedVideoList(latestTime int64) (videoList []*pb.Video, err error) {
 	// 查询数据库
+	var modelVidelList []model.Video
 	err = common.DB.Model(&model.Video{}).
 		Preload("Author").
 		Order("created_at DESC").
 		Limit(config.VIDEO_STREAM_BATCH_SIZE).
-		Where("created_at < ?", latestTimeUTC).
-		Find(&videoList).Error
+		Where("created_at < ?", latestTime).
+		Find(&modelVidelList).Error
 	if err != nil {
 		return nil, err
 	}
-
+	for _, v := range modelVidelList {
+		protoVideo := ToProtoVideo(v)
+		videoList = append(videoList, &protoVideo)
+	}
 	return videoList, nil
 }
 
