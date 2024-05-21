@@ -5,6 +5,7 @@ import (
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/config"
 	"github.com/RaymondCode/simple-demo/model"
+	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"github.com/gin-gonic/gin"
 	"mime/multipart"
 	"os"
@@ -28,14 +29,19 @@ func ToRespVideo(video model.Video) model.RespVideo {
 	return respVideo
 }
 
-func FeedVideoList(latestTimeUTC time.Time) (videoList []model.Video, err error) {
-	err = common.DB.Preload("Author").
+func FeedVideoList(latestTimeUTC time.Time) (videoList []*pb.Video, err error) {
+	// 查询数据库
+	err = common.DB.Model(&model.Video{}).
+		Preload("Author").
 		Order("created_at DESC").
 		Limit(config.VIDEO_STREAM_BATCH_SIZE).
-		Model(&model.Video{}).
 		Where("created_at < ?", latestTimeUTC).
 		Find(&videoList).Error
-	return videoList, err
+	if err != nil {
+		return nil, err
+	}
+
+	return videoList, nil
 }
 
 func JudgeFavorite(userId int64, videoId int64) (bool, error) {
