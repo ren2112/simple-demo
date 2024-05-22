@@ -22,6 +22,8 @@ func Feed(c *gin.Context) {
 		return
 	}
 	tokenStr := c.Query("token")
+
+	//连接grpc服务端
 	conn, err := grpc.Dial("127.0.0.1:9091", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("无法连接：%v", err)
@@ -29,7 +31,7 @@ func Feed(c *gin.Context) {
 	defer conn.Close()
 
 	//	建立连接
-	client := pb.NewVideoServiceClient(conn)
+	client := pb.NewVideoFeedServiceClient(conn)
 	resp, err := client.GetFeedList(c, &pb.DouyinFeedRequest{LatestTime: latestTime, Token: tokenStr})
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
