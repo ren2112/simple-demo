@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
+	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"gorm.io/gorm"
 )
 
@@ -86,8 +87,8 @@ func RelationAction(actionType string, userId int64, targetId int) error {
 	return nil
 }
 
-func GetFollowList(sourceId int64, userId int) ([]model.RespUser, error) {
-	var respUserList []model.RespUser
+func GetFollowList(sourceId int64, userId int) ([]*pb.User, error) {
+	var respUserList []*pb.User
 	var followList []model.Follow
 	if err := common.DB.Model(&model.Follow{}).Preload("User").Where("follower_user_id=?", userId).Find(&followList).Error; err != nil {
 		return nil, err
@@ -97,13 +98,13 @@ func GetFollowList(sourceId int64, userId int) ([]model.RespUser, error) {
 		if sourceId != 0 {
 			v.User.IsFollow = IsFollowed(sourceId, v.UserId)
 		}
-		respUserList = append(respUserList, ToRespUser(v.User))
+		respUserList = append(respUserList, ToProtoUser(v.User))
 	}
 	return respUserList, nil
 }
 
-func GetFollowerList(sourceId int64, userId int) ([]model.RespUser, error) {
-	var respUserList []model.RespUser
+func GetFollowerList(sourceId int64, userId int) ([]*pb.User, error) {
+	var respUserList []*pb.User
 	var followerList []model.Follow
 	if err := common.DB.Model(&model.Follow{}).Preload("FollowerUser").Where("user_id=?", userId).Find(&followerList).Error; err != nil {
 		return nil, err
@@ -114,7 +115,7 @@ func GetFollowerList(sourceId int64, userId int) ([]model.RespUser, error) {
 		if sourceId != 0 {
 			v.FollowerUser.IsFollow = IsFollowed(sourceId, v.FollowerUserId)
 		}
-		respUserList = append(respUserList, ToRespUser(v.FollowerUser))
+		respUserList = append(respUserList, ToProtoUser(v.FollowerUser))
 	}
 	return respUserList, nil
 }

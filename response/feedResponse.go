@@ -16,6 +16,6 @@ func FeedResponseFun(c *gin.Context, respVideoList []*pb.Video, responseTime int
 	c.JSON(http.StatusOK, FeedResponse{
 		Response:  Response{StatusCode: 0},
 		VideoList: respVideoList,
-		NextTime:  responseTime * 1000,
+		NextTime:  responseTime,
 	})
 }

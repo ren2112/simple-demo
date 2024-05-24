@@ -9,11 +9,11 @@ import (
 	"time"
 )
 
-type VideoFeedServer struct {
+type VideoFeedService struct {
 	pb.UnimplementedVideoFeedServiceServer
 }
 
-func (v VideoFeedServer) GetFeedList(ctx context.Context, req *pb.DouyinFeedRequest) (*pb.DouyinFeedResponse, error) {
+func (v VideoFeedService) GetFeedList(ctx context.Context, req *pb.DouyinFeedRequest) (*pb.DouyinFeedResponse, error) {
 	_, claims, _ := common.ParseToken(req.Token)
 
 	//转化时间

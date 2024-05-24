@@ -14,7 +14,7 @@ import (
 func main() {
 	utils.InitConfig()
 	common.InitDB()
-	listen, err := net.Listen("tcp", ":9091")
+	listen, err := net.Listen("tcp", ":9094")
 	if err != nil {
 		fmt.Printf("无法启动监听：%v\n", err)
 		return
@@ -24,10 +24,10 @@ func main() {
 	grpcServer := grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
 
 	// 在 gRPC 服务器上注册服务（本地注册）
-	pb.RegisterVideoFeedServiceServer(grpcServer, &rpcService.VideoFeedService{})
+	pb.RegisterRelationServiceServer(grpcServer, &rpcService.RelationService{})
 
 	// 启动 gRPC 服务
-	fmt.Println("启动视频流 gRPC 服务...")
+	fmt.Println("启动relation gRPC 服务...")
 	if err := grpcServer.Serve(listen); err != nil {
 		fmt.Printf("启动视频流 gRPC 服务失败：%v\n", err)
 		return

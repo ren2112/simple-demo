@@ -273,7 +273,6 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	PublishService_PublishVideo_FullMethodName   = "/douyin.core.PublishService/PublishVideo"
 	PublishService_GetPublishList_FullMethodName = "/douyin.core.PublishService/GetPublishList"
 )
 
@@ -281,7 +280,6 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PublishServiceClient interface {
-	PublishVideo(ctx context.Context, in *DouyinPublishActionRequest, opts ...grpc.CallOption) (*DouyinPublishActionResponse, error)
 	GetPublishList(ctx context.Context, in *DouyinPublishListRequest, opts ...grpc.CallOption) (*DouyinPublishListResponse, error)
 }
 
@@ -291,15 +289,6 @@ type publishServiceClient struct {
 
 func NewPublishServiceClient(cc grpc.ClientConnInterface) PublishServiceClient {
 	return &publishServiceClient{cc}
-}
-
-func (c *publishServiceClient) PublishVideo(ctx context.Context, in *DouyinPublishActionRequest, opts ...grpc.CallOption) (*DouyinPublishActionResponse, error) {
-	out := new(DouyinPublishActionResponse)
-	err := c.cc.Invoke(ctx, PublishService_PublishVideo_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *publishServiceClient) GetPublishList(ctx context.Context, in *DouyinPublishListRequest, opts ...grpc.CallOption) (*DouyinPublishListResponse, error) {
@@ -315,7 +304,6 @@ func (c *publishServiceClient) GetPublishList(ctx context.Context, in *DouyinPub
 // All implementations must embed UnimplementedPublishServiceServer
 // for forward compatibility
 type PublishServiceServer interface {
-	PublishVideo(context.Context, *DouyinPublishActionRequest) (*DouyinPublishActionResponse, error)
 	GetPublishList(context.Context, *DouyinPublishListRequest) (*DouyinPublishListResponse, error)
 	mustEmbedUnimplementedPublishServiceServer()
 }
@@ -324,9 +312,6 @@ type PublishServiceServer interface {
 type UnimplementedPublishServiceServer struct {
 }
 
-func (UnimplementedPublishServiceServer) PublishVideo(context.Context, *DouyinPublishActionRequest) (*DouyinPublishActionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PublishVideo not implemented")
-}
 func (UnimplementedPublishServiceServer) GetPublishList(context.Context, *DouyinPublishListRequest) (*DouyinPublishListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPublishList not implemented")
 }
@@ -341,24 +326,6 @@ type UnsafePublishServiceServer interface {
 
 func RegisterPublishServiceServer(s grpc.ServiceRegistrar, srv PublishServiceServer) {
 	s.RegisterService(&PublishService_ServiceDesc, srv)
-}
-
-func _PublishService_PublishVideo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DouyinPublishActionRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PublishServiceServer).PublishVideo(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PublishService_PublishVideo_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PublishServiceServer).PublishVideo(ctx, req.(*DouyinPublishActionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _PublishService_GetPublishList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -387,10 +354,6 @@ var PublishService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*PublishServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "PublishVideo",
-			Handler:    _PublishService_PublishVideo_Handler,
-		},
-		{
 			MethodName: "GetPublishList",
 			Handler:    _PublishService_GetPublishList_Handler,
 		},
@@ -409,7 +372,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type FavoriteServiceClient interface {
 	FavoriteAction(ctx context.Context, in *DouyinFavoriteActionRequest, opts ...grpc.CallOption) (*DouyinFavoriteActionResponse, error)
-	GetFavoriteList(ctx context.Context, in *DouyinFavoriteListRequest, opts ...grpc.CallOption) (*DouyinFavoriteActionResponse, error)
+	GetFavoriteList(ctx context.Context, in *DouyinFavoriteListRequest, opts ...grpc.CallOption) (*DouyinFavoriteListResponse, error)
 }
 
 type favoriteServiceClient struct {
@@ -429,8 +392,8 @@ func (c *favoriteServiceClient) FavoriteAction(ctx context.Context, in *DouyinFa
 	return out, nil
 }
 
-func (c *favoriteServiceClient) GetFavoriteList(ctx context.Context, in *DouyinFavoriteListRequest, opts ...grpc.CallOption) (*DouyinFavoriteActionResponse, error) {
-	out := new(DouyinFavoriteActionResponse)
+func (c *favoriteServiceClient) GetFavoriteList(ctx context.Context, in *DouyinFavoriteListRequest, opts ...grpc.CallOption) (*DouyinFavoriteListResponse, error) {
+	out := new(DouyinFavoriteListResponse)
 	err := c.cc.Invoke(ctx, FavoriteService_GetFavoriteList_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -443,7 +406,7 @@ func (c *favoriteServiceClient) GetFavoriteList(ctx context.Context, in *DouyinF
 // for forward compatibility
 type FavoriteServiceServer interface {
 	FavoriteAction(context.Context, *DouyinFavoriteActionRequest) (*DouyinFavoriteActionResponse, error)
-	GetFavoriteList(context.Context, *DouyinFavoriteListRequest) (*DouyinFavoriteActionResponse, error)
+	GetFavoriteList(context.Context, *DouyinFavoriteListRequest) (*DouyinFavoriteListResponse, error)
 	mustEmbedUnimplementedFavoriteServiceServer()
 }
 
@@ -454,7 +417,7 @@ type UnimplementedFavoriteServiceServer struct {
 func (UnimplementedFavoriteServiceServer) FavoriteAction(context.Context, *DouyinFavoriteActionRequest) (*DouyinFavoriteActionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FavoriteAction not implemented")
 }
-func (UnimplementedFavoriteServiceServer) GetFavoriteList(context.Context, *DouyinFavoriteListRequest) (*DouyinFavoriteActionResponse, error) {
+func (UnimplementedFavoriteServiceServer) GetFavoriteList(context.Context, *DouyinFavoriteListRequest) (*DouyinFavoriteListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetFavoriteList not implemented")
 }
 func (UnimplementedFavoriteServiceServer) mustEmbedUnimplementedFavoriteServiceServer() {}
@@ -536,7 +499,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CommentServiceClient interface {
 	CommentAction(ctx context.Context, in *DouyinCommentActionRequest, opts ...grpc.CallOption) (*DouyinCommentActionResponse, error)
-	GetCommentList(ctx context.Context, in *DouyinFavoriteListRequest, opts ...grpc.CallOption) (*DouyinCommentListResponse, error)
+	GetCommentList(ctx context.Context, in *DouyinCommentListRequest, opts ...grpc.CallOption) (*DouyinCommentListResponse, error)
 }
 
 type commentServiceClient struct {
@@ -556,7 +519,7 @@ func (c *commentServiceClient) CommentAction(ctx context.Context, in *DouyinComm
 	return out, nil
 }
 
-func (c *commentServiceClient) GetCommentList(ctx context.Context, in *DouyinFavoriteListRequest, opts ...grpc.CallOption) (*DouyinCommentListResponse, error) {
+func (c *commentServiceClient) GetCommentList(ctx context.Context, in *DouyinCommentListRequest, opts ...grpc.CallOption) (*DouyinCommentListResponse, error) {
 	out := new(DouyinCommentListResponse)
 	err := c.cc.Invoke(ctx, CommentService_GetCommentList_FullMethodName, in, out, opts...)
 	if err != nil {
@@ -570,7 +533,7 @@ func (c *commentServiceClient) GetCommentList(ctx context.Context, in *DouyinFav
 // for forward compatibility
 type CommentServiceServer interface {
 	CommentAction(context.Context, *DouyinCommentActionRequest) (*DouyinCommentActionResponse, error)
-	GetCommentList(context.Context, *DouyinFavoriteListRequest) (*DouyinCommentListResponse, error)
+	GetCommentList(context.Context, *DouyinCommentListRequest) (*DouyinCommentListResponse, error)
 	mustEmbedUnimplementedCommentServiceServer()
 }
 
@@ -581,7 +544,7 @@ type UnimplementedCommentServiceServer struct {
 func (UnimplementedCommentServiceServer) CommentAction(context.Context, *DouyinCommentActionRequest) (*DouyinCommentActionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CommentAction not implemented")
 }
-func (UnimplementedCommentServiceServer) GetCommentList(context.Context, *DouyinFavoriteListRequest) (*DouyinCommentListResponse, error) {
+func (UnimplementedCommentServiceServer) GetCommentList(context.Context, *DouyinCommentListRequest) (*DouyinCommentListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCommentList not implemented")
 }
 func (UnimplementedCommentServiceServer) mustEmbedUnimplementedCommentServiceServer() {}
@@ -616,7 +579,7 @@ func _CommentService_CommentAction_Handler(srv interface{}, ctx context.Context,
 }
 
 func _CommentService_GetCommentList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DouyinFavoriteListRequest)
+	in := new(DouyinCommentListRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -628,7 +591,7 @@ func _CommentService_GetCommentList_Handler(srv interface{}, ctx context.Context
 		FullMethod: CommentService_GetCommentList_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CommentServiceServer).GetCommentList(ctx, req.(*DouyinFavoriteListRequest))
+		return srv.(CommentServiceServer).GetCommentList(ctx, req.(*DouyinCommentListRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

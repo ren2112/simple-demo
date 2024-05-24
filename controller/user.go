@@ -2,12 +2,9 @@ package controller
 
 import (
 	"github.com/RaymondCode/simple-demo/common"
-	"github.com/RaymondCode/simple-demo/config"
-	"github.com/RaymondCode/simple-demo/model"
 	"github.com/RaymondCode/simple-demo/response"
-	"github.com/RaymondCode/simple-demo/service"
+	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
 	"strconv"
 )
 
@@ -19,73 +16,31 @@ func Register(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
 
-	if user := service.GetUserByName(username); user.Id != 0 {
-		response.UserLoginRespFail(c, "用户已存在")
+	//获取rpc连接
+	conn := common.GetUserConnection()
+
+	client := pb.NewUserServiceClient(conn)
+	resp, err := client.Regist(c, &pb.DouyinUserRegisterRequest{Username: username, Password: password})
+	if err != nil {
+		response.CommonResp(c, 1, "注册失败"+err.Error())
 		return
-	} else {
-		//修改为bcrypt加密
-		hasedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-		if err != nil {
-			response.UserLoginRespFail(c, "注册失败")
-			return
-		}
-		//创建新用户
-		newUser := model.User{
-			Name:            username,
-			Password:        string(hasedPassword),
-			Avatar:          config.DEFAULT_USER_AVATAR_URL,
-			BackgroundImage: config.DEFAULT_USER_BG_IMAGE_URL,
-			Signature:       config.DEFAULT_USER_BIO,
-		}
-
-		//调用服务层数据库操作
-		err = service.CreateUser(newUser)
-		if err != nil {
-			response.UserLoginRespFail(c, "注册失败！")
-			return
-		}
-
-		//获取token
-		token, err := common.ReleaseToken(newUser)
-		if err != nil {
-			response.UserLoginRespFail(c, "发送token失败")
-			return
-		}
-		response.UserLoginOk(c, newUser.Id, token)
 	}
+	response.UserLoginOk(c, resp.UserId, resp.Token)
 }
 
 func Login(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
 
-	//从redis缓存找
-	userPointerFromRedis, err := common.GetCachedUser(c, username)
-	var user model.User
-	if err == nil && userPointerFromRedis != nil {
-		user = *userPointerFromRedis
-	} else {
-		//如果缓存没找到，则用数据库查找是否存在用户
-		user = service.GetUserByName(username)
-		if user.Id == 0 {
-			response.UserLoginRespFail(c, "用户名或者密码错误")
-			return
-		}
-	}
+	conn := common.GetUserConnection()
 
-	//校验密码
-	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		response.UserLoginRespFail(c, "用户名或者密码错误")
-		return
-	}
-
-	//发放token
-	token, err := common.ReleaseToken(user)
+	client := pb.NewUserServiceClient(conn)
+	resp, err := client.Login(c, &pb.DouyinUserLoginRequest{Username: username, Password: password})
 	if err != nil {
-		response.UserLoginRespFail(c, "发送token失败")
+		response.CommonResp(c, 1, err.Error())
 		return
 	}
-	response.UserLoginOk(c, user.Id, token)
+	response.UserLoginOk(c, resp.UserId, resp.Token)
 }
 
 func UserInfo(c *gin.Context) {
@@ -93,10 +48,14 @@ func UserInfo(c *gin.Context) {
 	if err != nil {
 		response.UserLoginRespFail(c, "用户不存在")
 	}
-	user := service.GetUserByID(int64(userId))
-	if user.Id == 0 {
-		response.UserLoginRespFail(c, "用户不存在")
-	} else {
-		response.UserResponseFun(c, service.ToRespUser(user))
+
+	conn := common.GetUserConnection()
+
+	client := pb.NewUserServiceClient(conn)
+	resp, err := client.GetUserInfo(c, &pb.DouyinUserRequest{UserId: int64(userId)})
+	if err != nil {
+		response.CommonResp(c, 1, err.Error())
+		return
 	}
+	response.UserResponseFun(c, resp.User)
 }

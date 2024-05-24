@@ -37,8 +37,8 @@ func ToRespUser(user model.User) model.RespUser {
 	}
 }
 
-func ToProtoUser(user model.User) pb.User {
-	return pb.User{
+func ToProtoUser(user model.User) *pb.User {
+	return &pb.User{
 		Id:              user.Id,
 		Name:            user.Name,
 		Avatar:          user.Avatar,

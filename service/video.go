@@ -19,8 +19,8 @@ func ToRespVideo(video model.Video) model.RespVideo {
 		Id:            video.Id,
 		Author:        ToRespUser(video.Author),
 		Title:         video.Title,
-		PlayUrl:       video.PlayUrl,
-		CoverUrl:      video.CoverUrl,
+		PlayUrl:       config.SERVER_RESOURCES + video.PlayUrl,
+		CoverUrl:      config.SERVER_RESOURCES + video.CoverUrl,
 		FavoriteCount: video.FavoriteCount,
 		CommentCount:  video.CommentCount,
 		IsFavorite:    video.IsFavorite,
@@ -28,19 +28,20 @@ func ToRespVideo(video model.Video) model.RespVideo {
 	return respVideo
 }
 
-func ToProtoVideo(video model.Video) pb.Video {
+func ToProtoVideo(video model.Video) *pb.Video {
 	protoUser := ToProtoUser(video.Author)
 	respVideo := pb.Video{
 		Id:            video.Id,
-		Author:        &protoUser,
+		Author:        protoUser,
 		Title:         video.Title,
-		PlayUrl:       video.PlayUrl,
-		CoverUrl:      video.CoverUrl,
+		PlayUrl:       config.SERVER_RESOURCES + video.PlayUrl,
+		CoverUrl:      config.SERVER_RESOURCES + video.CoverUrl,
 		FavoriteCount: video.FavoriteCount,
 		CommentCount:  video.CommentCount,
 		IsFavorite:    video.IsFavorite,
+		CreatedAt:     video.CreatedAt,
 	}
-	return respVideo
+	return &respVideo
 }
 
 func FeedVideoList(latestTime int64) (videoList []*pb.Video, err error) {
@@ -57,7 +58,7 @@ func FeedVideoList(latestTime int64) (videoList []*pb.Video, err error) {
 	}
 	for _, v := range modelVidelList {
 		protoVideo := ToProtoVideo(v)
-		videoList = append(videoList, &protoVideo)
+		videoList = append(videoList, protoVideo)
 	}
 	return videoList, nil
 }
@@ -107,13 +108,13 @@ func PublishVideo(video model.Video, author model.User) error {
 	return err
 }
 
-func GetPublishVideoList(userId int64) ([]model.RespVideo, error) {
+func GetPublishVideoList(userId int64) ([]*pb.Video, error) {
 	var videoList []model.Video
-	RespVideoList := []model.RespVideo{}
+	RespVideoList := []*pb.Video{}
 	err := common.DB.Preload("Author").Model(&videoList).Where("author_id=?", userId).Find(&videoList).Error
 	//转化为响应专用
 	for _, v := range videoList {
-		RespVideoList = append(RespVideoList, ToRespVideo(v))
+		RespVideoList = append(RespVideoList, ToProtoVideo(v))
 	}
 	return RespVideoList, err
 }

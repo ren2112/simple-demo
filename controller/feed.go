@@ -1,12 +1,10 @@
 package controller
 
 import (
+	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/response"
 	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"github.com/gin-gonic/gin"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"log"
 	"strconv"
 )
 
@@ -23,14 +21,11 @@ func Feed(c *gin.Context) {
 	}
 	tokenStr := c.Query("token")
 
-	//连接grpc服务端
-	conn, err := grpc.Dial("127.0.0.1:9091", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("无法连接：%v", err)
-	}
-	defer conn.Close()
+	// 从连接池中获取连接
+	conn := common.GetFeedConnection()
+	//defer conn.Close()
 
-	//	建立连接
+	// 建立连接
 	client := pb.NewVideoFeedServiceClient(conn)
 	resp, err := client.GetFeedList(c, &pb.DouyinFeedRequest{LatestTime: latestTime, Token: tokenStr})
 	if err != nil {
@@ -38,4 +33,5 @@ func Feed(c *gin.Context) {
 		return
 	}
 	response.FeedResponseFun(c, resp.VideoList, resp.NextTime)
+	//response.CommonResp(c, 0, "ok")
 }

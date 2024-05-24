@@ -2,9 +2,11 @@ package controller
 
 import (
 	"fmt"
+	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/config"
 	"github.com/RaymondCode/simple-demo/model"
 	"github.com/RaymondCode/simple-demo/response"
+	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"github.com/RaymondCode/simple-demo/service"
 	"github.com/RaymondCode/simple-demo/utils"
 	"github.com/gin-gonic/gin"
@@ -70,13 +72,28 @@ func PublishList(c *gin.Context) {
 		response.CommonResp(c, 1, "操作失败")
 	}
 
-	//获取发布列表
-	var RespVideoList []model.RespVideo
-	RespVideoList, err = service.GetPublishVideoList(int64(userId))
+	// 从连接池中获取连接
+	conn := common.GetPublishConnection()
+	//defer conn.Close()
+
+	// 建立连接
+	client := pb.NewPublishServiceClient(conn)
+	resp, err := client.GetPublishList(c, &pb.DouyinPublishListRequest{UserId: int64(userId)})
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
-	} else {
-		response.VideoListResponseFun(c, response.Response{StatusCode: 0}, RespVideoList)
+		return
 	}
+	//fmt.Println(resp)
+	//response.CommonResp(c, 0, "ok")
+	response.VideoListResponseFun(c, response.Response{StatusCode: 0}, resp.VideoList)
+
+	////获取发布列表
+	//var RespVideoList []model.RespVideo
+	//RespVideoList, err = service.GetPublishVideoList(int64(userId))
+	//if err != nil {
+	//	response.CommonResp(c, 1, err.Error())
+	//} else {
+	//	response.VideoListResponseFun(c, response.Response{StatusCode: 0}, RespVideoList)
+	//}
 
 }

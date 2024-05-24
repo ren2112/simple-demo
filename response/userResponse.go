@@ -1,7 +1,7 @@
 package response
 
 import (
-	"github.com/RaymondCode/simple-demo/model"
+	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -14,12 +14,12 @@ type UserLoginResponse struct {
 
 type UserResponse struct {
 	Response
-	User model.RespUser `json:"user"`
+	User *pb.User `json:"user"`
 }
 
 type UserListResponse struct {
 	Response
-	UserList []model.RespUser `json:"user_list"`
+	UserList []*pb.User `json:"user_list"`
 }
 
 func UserLoginRespFail(c *gin.Context, msg string) {
@@ -36,14 +36,14 @@ func UserLoginOk(c *gin.Context, Id int64, token string) {
 	})
 }
 
-func UserResponseFun(c *gin.Context, respUser model.RespUser) {
+func UserResponseFun(c *gin.Context, respUser *pb.User) {
 	c.JSON(http.StatusOK, UserResponse{
 		Response: Response{StatusCode: 0},
 		User:     respUser,
 	})
 }
 
-func UserListResponseFun(c *gin.Context, response Response, respUserList []model.RespUser) {
+func UserListResponseFun(c *gin.Context, response Response, respUserList []*pb.User) {
 	c.JSON(http.StatusOK, UserListResponse{
 		Response: response,
 		UserList: respUserList,

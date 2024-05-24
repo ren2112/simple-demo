@@ -4,10 +4,11 @@ import (
 	"errors"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
+	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"gorm.io/gorm"
 )
 
-func FavoriteAction(actionType string, userId int64, videoId int64) error {
+func FavoriteAction(actionType int32, userId int64, videoId int64) error {
 	var favorite model.Favorite
 	favorite.UserId = userId
 	favorite.VideoId = videoId
@@ -27,7 +28,7 @@ func FavoriteAction(actionType string, userId int64, videoId int64) error {
 	//获得视频作者的信息，因为要对视频作者的获赞数量更改
 	common.DB.Preload("Author").Where("id=?", videoId).First(&video)
 	author = video.Author
-	if actionType == "1" {
+	if actionType == 1 {
 		favorite.IsFavorite = true
 		// 查看favorite表格是否存在数据，如果已经存在且已经点过赞，则直接返回
 		var existingFavorite model.Favorite
@@ -57,7 +58,7 @@ func FavoriteAction(actionType string, userId int64, videoId int64) error {
 		if err := tx.Model(&model.User{}).Where("id = ?", userId).Update("favorite_count", gorm.Expr("favorite_count + ?", 1)).Error; err != nil {
 			return err
 		}
-	} else {
+	} else if actionType == 2 {
 		//查找是否存在点赞记录，若没有或者已经是没点赞的状态下则无法取消点赞
 		var existFavorite model.Favorite
 		tx.Model(&model.Favorite{}).Where("user_id = ? AND video_id = ?", userId, videoId).First(&existFavorite)
@@ -82,24 +83,34 @@ func FavoriteAction(actionType string, userId int64, videoId int64) error {
 		if err := tx.Model(&model.User{}).Where("id = ?", userId).Update("favorite_count", gorm.Expr("favorite_count - ?", 1)).Error; err != nil {
 			return err
 		}
+	} else {
+		return errors.New("无效操作！")
 	}
 
 	tx.Commit()
 	return nil
 }
 
-func GetFavoriteList(userId string) ([]model.RespVideo, error) {
+func GetFavoriteList(sourceId, userId int64) ([]*pb.Video, error) {
 	var favorites []model.Favorite
-	var resVideoList []model.RespVideo
+	var resVideoList []*pb.Video
 	if err := common.DB.Preload("Video").Preload("Video.Author").Model(&model.Favorite{}).Where("user_id = ?", userId).Find(&favorites).Error; err != nil {
 		return nil, err
 	}
 
 	//设置视频结构体为为喜欢并且转换为响应结构体
-	for _, v := range favorites {
-		//v.Video.IsFavorite = true
-		if v.IsFavorite {
-			resVideoList = append(resVideoList, ToRespVideo(v.Video))
+	for _, f := range favorites {
+		//检查当前请求用户是否对userId的用户的点赞列表视频点赞
+		var isFavorite bool
+		isFavorite, err := JudgeFavorite(sourceId, f.VideoId)
+		if err != nil {
+			return nil, err
+		}
+
+		//判断favorite结构体是否点赞
+		if f.IsFavorite {
+			f.Video.IsFavorite = isFavorite
+			resVideoList = append(resVideoList, ToProtoVideo(f.Video))
 		}
 	}
 	return resVideoList, nil

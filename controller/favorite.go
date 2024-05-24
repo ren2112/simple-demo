@@ -1,42 +1,55 @@
 package controller
 
 import (
-	"github.com/RaymondCode/simple-demo/model"
+	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/response"
-	"github.com/RaymondCode/simple-demo/service"
+	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"github.com/gin-gonic/gin"
 	"strconv"
 )
 
 // FavoriteAction no practical effect, just check if token is valid
 func FavoriteAction(c *gin.Context) {
-	user, ok := c.Get("user")
-	if !ok {
-		response.CommonResp(c, 1, "请重新登陆！")
+	//获取token，actionType，videoId
+	token := c.Query("token")
+	actionType, err := strconv.ParseInt(c.Query("action_type"), 10, 32)
+	if err != nil {
+		response.CommonResp(c, 1, "无效操作！")
 		return
 	}
-	userId := user.(model.User).Id
-
 	videoID, err := strconv.Atoi(c.Query("video_id"))
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return
 	}
-	actionType := c.Query("action_type")
-	err = service.FavoriteAction(actionType, userId, int64(videoID))
+
+	conn := common.GetFavoriteConnection()
+
+	client := pb.NewFavoriteServiceClient(conn)
+	resp, err := client.FavoriteAction(c, &pb.DouyinFavoriteActionRequest{ActionType: int32(actionType), Token: token, VideoId: int64(videoID)})
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
+	} else {
+		response.CommonResp(c, resp.StatusCode, resp.StatusMsg)
 	}
-	response.CommonResp(c, 0, "操作成功！")
 }
 
 // FavoriteList all users have same favorite video list
 func FavoriteList(c *gin.Context) {
-	userId := c.Query("user_id")
-
-	resVideoList, err := service.GetFavoriteList(userId)
+	//获取userId，token
+	userId, err := strconv.ParseInt(c.Query("user_id"), 10, 64)
+	token := c.Query("token")
 	if err != nil {
-		response.CommonResp(c, 1, "获取点赞视频异常！")
+		response.CommonResp(c, 1, "用户不存在！")
 	}
-	response.VideoListResponseFun(c, response.Response{StatusCode: 0, StatusMsg: "获取成功！"}, resVideoList)
+
+	conn := common.GetFavoriteConnection()
+
+	client := pb.NewFavoriteServiceClient(conn)
+	resp, err := client.GetFavoriteList(c, &pb.DouyinFavoriteListRequest{UserId: userId, Token: token})
+	if err != nil {
+		response.CommonResp(c, 1, err.Error())
+	} else {
+		response.VideoListResponseFun(c, response.Response{StatusCode: resp.StatusCode, StatusMsg: resp.StatusMsg}, resp.VideoList)
+	}
 }

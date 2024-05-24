@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
 	"github.com/RaymondCode/simple-demo/response"
+	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"github.com/RaymondCode/simple-demo/service"
 	"github.com/gin-gonic/gin"
 	"strconv"
@@ -10,32 +12,59 @@ import (
 
 // CommentAction no practical effect, just check if token is valid
 func CommentAction(c *gin.Context) {
-	actionType := c.Query("action_type")
-	videoId, _ := strconv.Atoi(c.Query("video_id"))
-	commentId := c.Query("comment_id")
+	//获取6个参数：videoId,actionType,commentId,text,token,user
+	actionType, err := strconv.Atoi(c.Query("action_type"))
+	if err != nil {
+		response.CommonResp(c, 1, "无效操作！")
+		return
+	}
+	videoId, err := strconv.ParseInt(c.Query("video_id"), 10, 64)
+	if err != nil {
+		response.CommonResp(c, 1, "无效操作！")
+		return
+	}
+	commentIdStr := c.Query("comment_id")
+	var commentId int64
+	if commentIdStr != "" {
+		commentId, err = strconv.ParseInt(commentIdStr, 10, 64)
+		if err != nil {
+			response.CommonResp(c, 1, "无效操作！")
+			return
+		}
+	}
 	text := c.Query("comment_text")
-
-	//获取userid
+	token := c.Query("token")
 	user, ok := c.Get("user")
 	if !ok {
 		response.CommonResp(c, 1, "请先登录！")
+		return
 	}
 
-	respComment := model.RespComment{}
-	err := service.CommentAction(actionType, user.(model.User), int64(videoId), text, commentId, &respComment)
+	conn := common.GetCommentConnection()
+
+	client := pb.NewCommentServiceClient(conn)
+	resp, err := client.CommentAction(c, &pb.DouyinCommentActionRequest{Token: token, VideoId: videoId, ActionType: int32(actionType), CommentText: text, CommentId: commentId, User: service.ToProtoUser(user.(model.User))})
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
+		return
 	}
-	response.CommentActionResponseFun(c, response.Response{StatusCode: 0}, respComment)
+	response.CommentActionResponseFun(c, response.Response{StatusCode: 0}, resp.Comment)
 }
 
 // CommentList all videos have same demo comment list
 func CommentList(c *gin.Context) {
-	videoId := c.Query("video_id")
+	videoId, err := strconv.ParseInt(c.Query("video_id"), 10, 64)
+	if err != nil {
+		response.CommonResp(c, 1, "无效操作！")
+	}
 
-	respComments, err := service.GetCommentList(videoId)
+	conn := common.GetCommentConnection()
+
+	client := pb.NewCommentServiceClient(conn)
+	resp, err := client.GetCommentList(c, &pb.DouyinCommentListRequest{VideoId: videoId})
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
+		return
 	}
-	response.CommentListResponseFun(c, response.Response{StatusCode: 0}, respComments)
+	response.CommentListResponseFun(c, response.Response{StatusCode: 0}, resp.CommentList)
 }

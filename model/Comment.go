@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
+	"time"
+)
 
 type Comment struct {
 	Id        int64
@@ -13,7 +16,7 @@ type Comment struct {
 
 type RespComment struct {
 	Id         int64    `json:"id"`
-	User       RespUser `json:"user"`
+	User       *pb.User `json:"user"`
 	Content    string   `json:"content"`
 	CreateDate string   `json:"create_date"`
 }
