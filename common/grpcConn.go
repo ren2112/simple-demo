@@ -1,6 +1,7 @@
 package common
 
 import (
+	"github.com/RaymondCode/simple-demo/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
@@ -31,7 +32,7 @@ var (
 func initializeFeedConnectionPool() {
 	// 初始化连接池中的连接
 	for i := 0; i < 10; i++ { // 这里可以根据需要设置连接池中连接的数量
-		conn, err := grpc.Dial("127.0.0.1:9091", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpc.Dial(config.FEED_SERVER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			log.Fatalf("无法连接：%v", err)
 		}
@@ -43,7 +44,7 @@ func initializeFeedConnectionPool() {
 func initializeUserConnectionPool() {
 	// 初始化连接池中的连接
 	for i := 0; i < 10; i++ { // 这里可以根据需要设置连接池中连接的数量
-		conn, err := grpc.Dial("127.0.0.1:9092", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpc.Dial(config.USER_SERVER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			log.Fatalf("无法连接：%v", err)
 		}
@@ -55,7 +56,7 @@ func initializeUserConnectionPool() {
 func initializePublishConnectionPool() {
 	// 初始化连接池中的连接
 	for i := 0; i < 10; i++ { // 这里可以根据需要设置连接池中连接的数量
-		conn, err := grpc.Dial("127.0.0.1:9093", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpc.Dial(config.PUBLISH_SERVER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			log.Fatalf("无法连接：%v", err)
 		}
@@ -66,7 +67,7 @@ func initializePublishConnectionPool() {
 func initializeRelationConnectionPool() {
 	// 初始化连接池中的连接
 	for i := 0; i < 10; i++ { // 这里可以根据需要设置连接池中连接的数量
-		conn, err := grpc.Dial("127.0.0.1:9094", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpc.Dial(config.RELATION_SERVER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			log.Fatalf("无法连接：%v", err)
 		}
@@ -78,7 +79,7 @@ func initializeRelationConnectionPool() {
 func initializeFavoriteConnectionPool() {
 	// 初始化连接池中的连接
 	for i := 0; i < 10; i++ { // 这里可以根据需要设置连接池中连接的数量
-		conn, err := grpc.Dial("127.0.0.1:9095", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpc.Dial(config.FAVORITE_SERVER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			log.Fatalf("无法连接：%v", err)
 		}
@@ -90,7 +91,7 @@ func initializeFavoriteConnectionPool() {
 func initializeCommentConnectionPool() {
 	// 初始化连接池中的连接
 	for i := 0; i < 10; i++ { // 这里可以根据需要设置连接池中连接的数量
-		conn, err := grpc.Dial("127.0.0.1:9096", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpc.Dial(config.COMMENT_SERVER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			log.Fatalf("无法连接：%v", err)
 		}
@@ -102,7 +103,7 @@ func initializeCommentConnectionPool() {
 func initializeMessageConnectionPool() {
 	// 初始化连接池中的连接
 	for i := 0; i < 10; i++ { // 这里可以根据需要设置连接池中连接的数量
-		conn, err := grpc.Dial("127.0.0.1:9097", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpc.Dial(config.MESSAGE_SERVER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			log.Fatalf("无法连接：%v", err)
 		}
@@ -114,7 +115,7 @@ func initializeMessageConnectionPool() {
 func initializeFriendConnectionPool() {
 	// 初始化连接池中的连接
 	for i := 0; i < 10; i++ { // 这里可以根据需要设置连接池中连接的数量
-		conn, err := grpc.Dial("127.0.0.1:9098", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpc.Dial(config.FRIEND_SERVER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			log.Fatalf("无法连接：%v", err)
 		}

@@ -7,5 +7,12 @@ const (
 	AUTH_KEY                = "a_secret_key"        // JWT 密钥
 	TOKENBUCKET_CAPACITY    = 100                   //令牌桶容量
 	TOKENBUCKET_RATE        = 10000                 //令牌桶生成令牌频率
-
+	FEED_SERVER_ADDR        = "127.0.0.1:9091"
+	USER_SERVER_ADDR        = "127.0.0.1:9092"
+	PUBLISH_SERVER_ADDR     = "127.0.0.1:9093"
+	RELATION_SERVER_ADDR    = "127.0.0.1:9094"
+	FAVORITE_SERVER_ADDR    = "127.0.0.1:9095"
+	COMMENT_SERVER_ADDR     = "127.0.0.1:9096"
+	MESSAGE_SERVER_ADDR     = "127.0.0.1:9097"
+	FRIEND_SERVER_ADDR      = "127.0.0.1:9098"
 )

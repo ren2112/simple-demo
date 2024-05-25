@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
+	"github.com/RaymondCode/simple-demo/config"
 	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	rpcService "github.com/RaymondCode/simple-demo/rpc-service/service"
 	"github.com/RaymondCode/simple-demo/utils"
@@ -15,7 +16,7 @@ func main() {
 	utils.InitConfig()
 	common.InitDB()
 	common.InitRedis()
-	listen, err := net.Listen("tcp", ":9092")
+	listen, err := net.Listen("tcp", config.USER_SERVER_ADDR)
 	if err != nil {
 		fmt.Printf("无法启动监听：%v\n", err)
 		return
