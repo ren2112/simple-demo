@@ -48,7 +48,7 @@ func CommentAction(c *gin.Context) {
 		response.CommonResp(c, 1, err.Error())
 		return
 	}
-	response.CommentActionResponseFun(c, response.Response{StatusCode: 0}, resp.Comment)
+	response.CommentActionResponseFun(c, response.Response{StatusCode: resp.StatusCode, StatusMsg: resp.StatusMsg}, resp.Comment)
 }
 
 // CommentList all videos have same demo comment list
@@ -66,5 +66,5 @@ func CommentList(c *gin.Context) {
 		response.CommonResp(c, 1, err.Error())
 		return
 	}
-	response.CommentListResponseFun(c, response.Response{StatusCode: 0}, resp.CommentList)
+	response.CommentListResponseFun(c, response.Response{StatusCode: resp.StatusCode, StatusMsg: resp.StatusMsg}, resp.CommentList)
 }

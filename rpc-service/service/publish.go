@@ -15,7 +15,7 @@ func (p PublishService) GetPublishList(ctx context.Context, req *pb.DouyinPublis
 	var RespVideoList []*pb.Video
 	RespVideoList, err := service.GetPublishVideoList(req.UserId)
 	if err != nil {
-		return nil, err
+		return &pb.DouyinPublishListResponse{StatusCode: 1, StatusMsg: "获取发布列表失败！"}, nil
 	} else {
 		return &pb.DouyinPublishListResponse{StatusCode: 0, StatusMsg: "获取发布列表成功！", VideoList: RespVideoList}, nil
 	}

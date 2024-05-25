@@ -25,13 +25,13 @@ func (u UserService) Login(ctx context.Context, req *pb.DouyinUserLoginRequest) 
 		//如果缓存没找到，则用数据库查找是否存在用户
 		user = service.GetUserByName(req.Username)
 		if user.Id == 0 {
-			return nil, errors.New("用户名或者密码错误")
+			return &pb.DouyinUserLoginResponse{StatusCode: 1, StatusMsg: "用户名或密码错误！"}, nil
 		}
 	}
 
 	//校验密码
 	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		return nil, errors.New("用户名或者密码错误")
+		return &pb.DouyinUserLoginResponse{StatusCode: 1, StatusMsg: "用户名或密码错误！"}, nil
 	}
 
 	//发放token
@@ -54,7 +54,7 @@ func (u UserService) Regist(ctx context.Context, req *pb.DouyinUserRegisterReque
 		//修改为bcrypt加密
 		hasedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 		if err != nil {
-			return nil, err
+			return &pb.DouyinUserRegisterResponse{StatusCode: 1, StatusMsg: err.Error()}, nil
 		}
 		//创建新用户
 		newUser := model.User{
@@ -68,7 +68,7 @@ func (u UserService) Regist(ctx context.Context, req *pb.DouyinUserRegisterReque
 		//调用服务层数据库操作
 		err = service.CreateUser(newUser)
 		if err != nil {
-			return nil, err
+			return &pb.DouyinUserRegisterResponse{StatusCode: 1, StatusMsg: err.Error()}, nil
 		}
 
 		//获取token

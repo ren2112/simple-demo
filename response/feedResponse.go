@@ -12,9 +12,9 @@ type FeedResponse struct {
 	NextTime  int64       `json:"next_time,omitempty"`
 }
 
-func FeedResponseFun(c *gin.Context, respVideoList []*pb.Video, responseTime int64) {
+func FeedResponseFun(c *gin.Context, response Response, respVideoList []*pb.Video, responseTime int64) {
 	c.JSON(http.StatusOK, FeedResponse{
-		Response:  Response{StatusCode: 0},
+		Response:  response,
 		VideoList: respVideoList,
 		NextTime:  responseTime,
 	})

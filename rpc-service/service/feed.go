@@ -27,7 +27,7 @@ func (v VideoFeedService) GetFeedList(ctx context.Context, req *pb.DouyinFeedReq
 	//获取视频流
 	videoList, err := service.FeedVideoList(latestTime)
 	if err != nil {
-		return nil, err
+		return &pb.DouyinFeedResponse{StatusCode: 1, StatusMsg: err.Error()}, nil
 	}
 
 	//若用户登录了，需要判断视频作者是否关注以及是否对视频点赞
@@ -37,7 +37,7 @@ func (v VideoFeedService) GetFeedList(ctx context.Context, req *pb.DouyinFeedReq
 			var isFavorite bool
 			isFavorite, err = service.JudgeFavorite(claims.UserId, v.Id)
 			if err != nil {
-				return nil, err
+				return &pb.DouyinFeedResponse{StatusCode: 1, StatusMsg: err.Error()}, nil
 			}
 			videoList[i].IsFavorite = isFavorite
 
@@ -49,7 +49,7 @@ func (v VideoFeedService) GetFeedList(ctx context.Context, req *pb.DouyinFeedReq
 			} else if err == gorm.ErrRecordNotFound {
 				videoList[i].Author.IsFollow = false
 			} else {
-				return nil, err
+				return &pb.DouyinFeedResponse{StatusCode: 1, StatusMsg: err.Error()}, nil
 			}
 		}
 	}

@@ -25,7 +25,7 @@ func Register(c *gin.Context) {
 		response.CommonResp(c, 1, "注册失败"+err.Error())
 		return
 	}
-	response.UserLoginOk(c, resp.UserId, resp.Token)
+	response.UserLoginResp(c, resp.UserId, resp.Token, resp.StatusCode, resp.StatusMsg)
 }
 
 func Login(c *gin.Context) {
@@ -40,7 +40,7 @@ func Login(c *gin.Context) {
 		response.CommonResp(c, 1, err.Error())
 		return
 	}
-	response.UserLoginOk(c, resp.UserId, resp.Token)
+	response.UserLoginResp(c, resp.UserId, resp.Token, resp.StatusCode, resp.StatusMsg)
 }
 
 func UserInfo(c *gin.Context) {

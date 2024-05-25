@@ -14,6 +14,8 @@ var (
 	onceRelation sync.Once
 	onceFavorite sync.Once
 	onceComment  sync.Once
+	onceMessage  sync.Once
+	onceFriend   sync.Once
 
 	connFeedPool     []*grpc.ClientConn
 	connUserPool     []*grpc.ClientConn
@@ -21,6 +23,8 @@ var (
 	connRelationPool []*grpc.ClientConn
 	connFavoritePool []*grpc.ClientConn
 	connCommentPool  []*grpc.ClientConn
+	connMessagePool  []*grpc.ClientConn
+	connFriendPool   []*grpc.ClientConn
 )
 
 // 初始化连接池
@@ -94,6 +98,30 @@ func initializeCommentConnectionPool() {
 	}
 }
 
+// 初始化连接池
+func initializeMessageConnectionPool() {
+	// 初始化连接池中的连接
+	for i := 0; i < 10; i++ { // 这里可以根据需要设置连接池中连接的数量
+		conn, err := grpc.Dial("127.0.0.1:9097", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			log.Fatalf("无法连接：%v", err)
+		}
+		connMessagePool = append(connMessagePool, conn)
+	}
+}
+
+// 初始化连接池
+func initializeFriendConnectionPool() {
+	// 初始化连接池中的连接
+	for i := 0; i < 10; i++ { // 这里可以根据需要设置连接池中连接的数量
+		conn, err := grpc.Dial("127.0.0.1:9098", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			log.Fatalf("无法连接：%v", err)
+		}
+		connFriendPool = append(connFriendPool, conn)
+	}
+}
+
 // 从连接池中获取连接
 func GetFeedConnection() *grpc.ClientConn {
 	onceFeed.Do(func() {
@@ -135,4 +163,18 @@ func GetCommentConnection() *grpc.ClientConn {
 		initializeCommentConnectionPool()
 	})
 	return connCommentPool[0] // 返回连接池中的第一个连接，这里可以实现负载均衡或其他连接选择策略
+}
+
+func GetMessageConnection() *grpc.ClientConn {
+	onceMessage.Do(func() {
+		initializeMessageConnectionPool()
+	})
+	return connMessagePool[0] // 返回连接池中的第一个连接，这里可以实现负载均衡或其他连接选择策略
+}
+
+func GetFriendConnection() *grpc.ClientConn {
+	onceFriend.Do(func() {
+		initializeFriendConnectionPool()
+	})
+	return connFriendPool[0] // 返回连接池中的第一个连接，这里可以实现负载均衡或其他连接选择策略
 }

@@ -28,9 +28,9 @@ func UserLoginRespFail(c *gin.Context, msg string) {
 	})
 }
 
-func UserLoginOk(c *gin.Context, Id int64, token string) {
+func UserLoginResp(c *gin.Context, Id int64, token string, statusCode int32, statusMsg string) {
 	c.JSON(http.StatusOK, UserLoginResponse{
-		Response: Response{StatusCode: 0},
+		Response: Response{StatusCode: statusCode, StatusMsg: statusMsg},
 		UserId:   Id,
 		Token:    token,
 	})

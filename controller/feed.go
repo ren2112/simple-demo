@@ -32,6 +32,5 @@ func Feed(c *gin.Context) {
 		response.CommonResp(c, 1, err.Error())
 		return
 	}
-	response.FeedResponseFun(c, resp.VideoList, resp.NextTime)
-	//response.CommonResp(c, 0, "ok")
+	response.FeedResponseFun(c, response.Response{StatusCode: resp.StatusCode, StatusMsg: resp.StatusMsg}, resp.VideoList, resp.NextTime)
 }

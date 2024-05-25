@@ -83,17 +83,5 @@ func PublishList(c *gin.Context) {
 		response.CommonResp(c, 1, err.Error())
 		return
 	}
-	//fmt.Println(resp)
-	//response.CommonResp(c, 0, "ok")
-	response.VideoListResponseFun(c, response.Response{StatusCode: 0}, resp.VideoList)
-
-	////获取发布列表
-	//var RespVideoList []model.RespVideo
-	//RespVideoList, err = service.GetPublishVideoList(int64(userId))
-	//if err != nil {
-	//	response.CommonResp(c, 1, err.Error())
-	//} else {
-	//	response.VideoListResponseFun(c, response.Response{StatusCode: 0}, RespVideoList)
-	//}
-
+	response.VideoListResponseFun(c, response.Response{StatusCode: resp.StatusCode, StatusMsg: resp.StatusMsg}, resp.VideoList)
 }

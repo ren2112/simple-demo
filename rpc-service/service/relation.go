@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"github.com/RaymondCode/simple-demo/common"
 	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"github.com/RaymondCode/simple-demo/service"
@@ -17,7 +16,7 @@ func (r RelationService) FollowAction(ctx context.Context, req *pb.DouyinRelatio
 	_, claims, _ := common.ParseToken(req.Token)
 	err := service.RelationAction(strconv.Itoa(int(req.ActionType)), claims.UserId, int(req.ToUserId))
 	if err != nil {
-		return nil, errors.New("操作失败！")
+		return &pb.DouyinRelationActionResponse{StatusCode: 1, StatusMsg: err.Error()}, nil
 	} else {
 		return &pb.DouyinRelationActionResponse{StatusCode: 0, StatusMsg: "关注成功！"}, nil
 	}
@@ -30,7 +29,7 @@ func (r RelationService) GetFollowList(ctx context.Context, req *pb.DouyinRelati
 
 	respUserList, err := service.GetFollowList(sourceId, int(req.UserId))
 	if err != nil {
-		return nil, err
+		return &pb.DouyinRelationFollowListResponse{StatusCode: 1, StatusMsg: "获取关注列表失败！"}, nil
 	} else {
 		return &pb.DouyinRelationFollowListResponse{StatusCode: 0, StatusMsg: "获取关注列表成功！", UserList: respUserList}, nil
 	}
@@ -39,9 +38,9 @@ func (r RelationService) GetFollowList(ctx context.Context, req *pb.DouyinRelati
 func (r RelationService) GetFollowerList(ctx context.Context, req *pb.DouyinRelationFollowerListRequest) (*pb.DouyinRelationFollowerListResponse, error) {
 	_, claims, _ := common.ParseToken(req.Token)
 	sourceId := claims.UserId
-	respUserList, err := service.GetFollowerList(sourceId, int(req.UserId))
+	respUserList, err := service.GetFollowerList(sourceId, req.UserId)
 	if err != nil {
-		return nil, err
+		return &pb.DouyinRelationFollowerListResponse{StatusCode: 1, StatusMsg: "获取粉丝列表失败！"}, nil
 	} else {
 		return &pb.DouyinRelationFollowerListResponse{StatusCode: 0, StatusMsg: "获取粉丝列表成功！", UserList: respUserList}, nil
 	}

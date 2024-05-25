@@ -103,7 +103,7 @@ func GetFollowList(sourceId int64, userId int) ([]*pb.User, error) {
 	return respUserList, nil
 }
 
-func GetFollowerList(sourceId int64, userId int) ([]*pb.User, error) {
+func GetFollowerList(sourceId int64, userId int64) ([]*pb.User, error) {
 	var respUserList []*pb.User
 	var followerList []model.Follow
 	if err := common.DB.Model(&model.Follow{}).Preload("FollowerUser").Where("user_id=?", userId).Find(&followerList).Error; err != nil {
@@ -128,4 +128,22 @@ func IsFollowed(aUserId, bUserId int64) bool {
 		return true
 	}
 	return false
+}
+
+func ToProtoFriend(user *pb.User, msg string, msgType int64) *pb.FriendUser {
+	return &pb.FriendUser{
+		Id:              user.Id,
+		Name:            user.Name,
+		FollowCount:     user.FollowCount,
+		FollowerCount:   user.FollowerCount,
+		IsFollow:        user.IsFollow,
+		Avatar:          user.Avatar,
+		BackgroundImage: user.BackgroundImage,
+		Signature:       user.Signature,
+		TotalFavorited:  user.TotalFavorited,
+		WorkCount:       user.WorkCount,
+		FavoriteCount:   user.FavoriteCount,
+		Message:         msg,
+		MsgType:         msgType,
+	}
 }
