@@ -18,10 +18,11 @@ func MessageAction(c *gin.Context) {
 	}
 	content := c.Query("content")
 
-	conn := common.GetMessageConnection()
+	conn := common.ConnMessagePool.Get()
 	// 建立连接
 	client := pb.NewChatServiceClient(conn)
 	resp, err := client.ChatAction(c, &pb.DouyinChatActionRequest{Token: token, ToUserId: toUserId, Content: content})
+	common.ConnMessagePool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return
@@ -44,10 +45,11 @@ func MessageChat(c *gin.Context) {
 		return
 	}
 
-	conn := common.GetMessageConnection()
+	conn := common.ConnMessagePool.Get()
 	// 建立连接
 	client := pb.NewChatServiceClient(conn)
 	resp, err := client.GetChatList(c, &pb.DouyinMessageChatRequest{Token: token, ToUserId: toUserId, PreMsgTime: preMsgTime})
+	common.ConnMessagePool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return

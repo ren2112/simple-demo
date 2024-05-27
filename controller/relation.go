@@ -18,10 +18,11 @@ func RelationAction(c *gin.Context) {
 		return
 	}
 
-	conn := common.GetRelationConnection()
+	conn := common.ConnRelationPool.Get()
 
 	client := pb.NewRelationServiceClient(conn)
 	resp, err := client.FollowAction(c, &pb.DouyinRelationActionRequest{Token: token, ActionType: int32(actionType), ToUserId: int64(targetID)})
+	common.ConnRelationPool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return
@@ -38,10 +39,11 @@ func FollowList(c *gin.Context) {
 		return
 	}
 
-	conn := common.GetRelationConnection()
+	conn := common.ConnRelationPool.Get()
 
 	client := pb.NewRelationServiceClient(conn)
 	resp, err := client.GetFollowList(c, &pb.DouyinRelationFollowListRequest{UserId: int64(userId), Token: token})
+	common.ConnRelationPool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return
@@ -58,10 +60,11 @@ func FollowerList(c *gin.Context) {
 		return
 	}
 
-	conn := common.GetRelationConnection()
+	conn := common.ConnRelationPool.Get()
 
 	client := pb.NewRelationServiceClient(conn)
 	resp, err := client.GetFollowerList(c, &pb.DouyinRelationFollowerListRequest{UserId: int64(userId), Token: token})
+	common.ConnRelationPool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return
@@ -78,10 +81,11 @@ func FriendList(c *gin.Context) {
 		return
 	}
 
-	conn := common.GetFriendConnection()
+	conn := common.ConnFriendPool.Get()
 
 	client := pb.NewFriendServiceClient(conn)
 	resp, err := client.GetFriendList(c, &pb.DouyinRelationFriendListRequest{UserId: int64(userId), Token: token})
+	common.ConnFriendPool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return

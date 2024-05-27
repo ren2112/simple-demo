@@ -40,10 +40,11 @@ func CommentAction(c *gin.Context) {
 		return
 	}
 
-	conn := common.GetCommentConnection()
+	conn := common.ConnCommentPool.Get()
 
 	client := pb.NewCommentServiceClient(conn)
 	resp, err := client.CommentAction(c, &pb.DouyinCommentActionRequest{Token: token, VideoId: videoId, ActionType: int32(actionType), CommentText: text, CommentId: commentId, User: service.ToProtoUser(user.(model.User))})
+	common.ConnCommentPool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return
@@ -58,10 +59,11 @@ func CommentList(c *gin.Context) {
 		response.CommonResp(c, 1, "无效操作！")
 	}
 
-	conn := common.GetCommentConnection()
+	conn := common.ConnCommentPool.Get()
 
 	client := pb.NewCommentServiceClient(conn)
 	resp, err := client.GetCommentList(c, &pb.DouyinCommentListRequest{VideoId: videoId})
+	common.ConnCommentPool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return

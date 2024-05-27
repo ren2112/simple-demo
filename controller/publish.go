@@ -73,12 +73,13 @@ func PublishList(c *gin.Context) {
 	}
 
 	// 从连接池中获取连接
-	conn := common.GetPublishConnection()
+	conn := common.ConnPublishPool.Get()
 	//defer conn.Close()
 
 	// 建立连接
 	client := pb.NewPublishServiceClient(conn)
 	resp, err := client.GetPublishList(c, &pb.DouyinPublishListRequest{UserId: int64(userId)})
+	common.ConnPublishPool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return

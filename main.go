@@ -17,6 +17,7 @@ func main() {
 	utils.InitConfig()
 	common.InitDB()
 	common.InitRedis()
+	common.InitAllConnPool()
 
 	r := gin.Default()
 	//使用token桶来对请求节流

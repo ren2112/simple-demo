@@ -16,7 +16,7 @@ func (c CommentService) CommentAction(ctx context.Context, req *pb.DouyinComment
 	if err != nil {
 		return &pb.DouyinCommentActionResponse{StatusCode: 1, StatusMsg: "异常！"}, err
 	}
-	return &pb.DouyinCommentActionResponse{StatusCode: 1, StatusMsg: "评论成功！", Comment: &respComment}, nil
+	return &pb.DouyinCommentActionResponse{StatusCode: 0, StatusMsg: "评论成功！", Comment: &respComment}, nil
 }
 
 func (c CommentService) GetCommentList(ctx context.Context, req *pb.DouyinCommentListRequest) (*pb.DouyinCommentListResponse, error) {
@@ -24,5 +24,5 @@ func (c CommentService) GetCommentList(ctx context.Context, req *pb.DouyinCommen
 	if err != nil {
 		return &pb.DouyinCommentListResponse{StatusCode: 1, StatusMsg: "获取评论列表失败！"}, nil
 	}
-	return &pb.DouyinCommentListResponse{StatusCode: 1, StatusMsg: "获取评论成功！", CommentList: respComments}, nil
+	return &pb.DouyinCommentListResponse{StatusCode: 0, StatusMsg: "获取评论成功！", CommentList: respComments}, nil
 }
