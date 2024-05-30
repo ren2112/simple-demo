@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/config"
+	"github.com/RaymondCode/simple-demo/registry"
 	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	rpcService "github.com/RaymondCode/simple-demo/rpc-service/service"
 	"github.com/RaymondCode/simple-demo/utils"
@@ -26,6 +27,14 @@ func main() {
 
 	// 在 gRPC 服务器上注册服务（本地注册）
 	pb.RegisterVideoFeedServiceServer(grpcServer, &rpcService.VideoFeedService{})
+	//注册中心注册
+	s := &registry.Service{
+		Name:     "feed",
+		Port:     "9091",
+		IP:       "127.0.0.1",
+		Protocol: "grpc",
+	}
+	go registry.ServiceRegister(s)
 
 	// 启动 gRPC 服务
 	fmt.Println("启动视频流 gRPC 服务...")

@@ -4,6 +4,7 @@ import (
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/config"
 	"github.com/RaymondCode/simple-demo/middleware"
+	"github.com/RaymondCode/simple-demo/registry"
 	"time"
 
 	//"github.com/RaymondCode/simple-demo/service"
@@ -11,9 +12,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func WatchService() {
+	go registry.WatchServiceName("feed")
+}
+
 func main() {
 	//go service.RunMessageServer()
 
+	WatchService()
+	time.Sleep(time.Second) //待优化，需要先阻塞等watchServiceName初始化我们的douyinservice才可以初始化线程池
 	utils.InitConfig()
 	common.InitDB()
 	common.InitRedis()

@@ -3,6 +3,7 @@ package common
 import (
 	"github.com/RaymondCode/simple-demo/config"
 	grpc_client_pool "github.com/RaymondCode/simple-demo/grpc-client-pool"
+	"github.com/RaymondCode/simple-demo/registry"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
@@ -34,7 +35,9 @@ func InitAllConnPool() {
 // 初始化Feed连接池
 func initializeFeedConnectionPool() {
 	var err error
-	ConnFeedPool, err = grpc_client_pool.GetFeedPool(config.FEED_SERVER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	s := registry.ServiceDiscovery("feed")
+	addr := s.IP + ":" + s.Port
+	ConnFeedPool, err = grpc_client_pool.GetFeedPool(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
 	}
