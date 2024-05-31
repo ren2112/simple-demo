@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/config"
+	"github.com/RaymondCode/simple-demo/registry"
 	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	rpcService "github.com/RaymondCode/simple-demo/rpc-service/service"
 	"github.com/RaymondCode/simple-demo/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"net"
+	"strings"
 )
 
 func main() {
@@ -27,6 +29,14 @@ func main() {
 
 	// 在 gRPC 服务器上注册服务（本地注册）
 	pb.RegisterUserServiceServer(grpcServer, &rpcService.UserService{})
+	//注册中心注册
+	s := &registry.Service{
+		Name:     "user",
+		IP:       strings.Split(config.USER_SERVER_ADDR, ":")[0],
+		Port:     strings.Split(config.USER_SERVER_ADDR, ":")[1],
+		Protocol: "grpc",
+	}
+	go registry.ServiceRegister(s)
 
 	// 启动 gRPC 服务
 	fmt.Println("启动user gRPC 服务...")

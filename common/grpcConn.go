@@ -1,7 +1,6 @@
 package common
 
 import (
-	"github.com/RaymondCode/simple-demo/config"
 	grpc_client_pool "github.com/RaymondCode/simple-demo/grpc-client-pool"
 	"github.com/RaymondCode/simple-demo/registry"
 	"google.golang.org/grpc"
@@ -46,7 +45,9 @@ func initializeFeedConnectionPool() {
 // 初始化User连接池
 func initializeUserConnectionPool() {
 	var err error
-	ConnUserPool, err = grpc_client_pool.GetUserPool(config.USER_SERVER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	s := registry.ServiceDiscovery("user")
+	addr := s.IP + ":" + s.Port
+	ConnUserPool, err = grpc_client_pool.GetUserPool(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -55,7 +56,9 @@ func initializeUserConnectionPool() {
 // 初始化Publish连接池
 func initializePublishConnectionPool() {
 	var err error
-	ConnPublishPool, err = grpc_client_pool.GetPublishPool(config.PUBLISH_SERVER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	s := registry.ServiceDiscovery("publish")
+	addr := s.IP + ":" + s.Port
+	ConnPublishPool, err = grpc_client_pool.GetPublishPool(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -64,7 +67,9 @@ func initializePublishConnectionPool() {
 // 初始化Relation连接池
 func initializeRelationConnectionPool() {
 	var err error
-	ConnRelationPool, err = grpc_client_pool.GetRelationPool(config.RELATION_SERVER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	s := registry.ServiceDiscovery("relation")
+	addr := s.IP + ":" + s.Port
+	ConnRelationPool, err = grpc_client_pool.GetRelationPool(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -73,7 +78,9 @@ func initializeRelationConnectionPool() {
 // 初始化favorite连接池
 func initializeFavoriteConnectionPool() {
 	var err error
-	ConnFavoritePool, err = grpc_client_pool.GetFavoritePool(config.FAVORITE_SERVER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	s := registry.ServiceDiscovery("favorite")
+	addr := s.IP + ":" + s.Port
+	ConnFavoritePool, err = grpc_client_pool.GetFavoritePool(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -82,7 +89,9 @@ func initializeFavoriteConnectionPool() {
 // 初始化连接池
 func initializeCommentConnectionPool() {
 	var err error
-	ConnCommentPool, err = grpc_client_pool.GetCommentPool(config.COMMENT_SERVER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	s := registry.ServiceDiscovery("comment")
+	addr := s.IP + ":" + s.Port
+	ConnCommentPool, err = grpc_client_pool.GetCommentPool(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -91,7 +100,9 @@ func initializeCommentConnectionPool() {
 // 初始化连接池
 func initializeMessageConnectionPool() {
 	var err error
-	ConnMessagePool, err = grpc_client_pool.GetMessagePool(config.MESSAGE_SERVER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	s := registry.ServiceDiscovery("message")
+	addr := s.IP + ":" + s.Port
+	ConnMessagePool, err = grpc_client_pool.GetMessagePool(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -100,67 +111,10 @@ func initializeMessageConnectionPool() {
 // 初始化连接池
 func initializeFriendConnectionPool() {
 	var err error
-	ConnFriendPool, err = grpc_client_pool.GetFriendPool(config.FRIEND_SERVER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	s := registry.ServiceDiscovery("friend")
+	addr := s.IP + ":" + s.Port
+	ConnFriendPool, err = grpc_client_pool.GetFriendPool(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
 	}
 }
-
-// 从连接池中获取连接
-//func GetFeedConnection() *grpc.ClientConn {
-//	conn := ConnFeedPool.Get()
-//
-//	//onceFeed.Do(func() {
-//	//	initializeFeedConnectionPool()
-//	//})
-//	//return connFeedPool[0] // 返回连接池中的第一个连接，这里可以实现负载均衡或其他连接选择策略
-//}
-
-//func GetUserConnection() *grpc.ClientConn {
-//	onceUser.Do(func() {
-//		initializeUserConnectionPool()
-//	})
-//	return connUserPool[0] // 返回连接池中的第一个连接，这里可以实现负载均衡或其他连接选择策略
-//}
-
-//func GetPublishConnection() *grpc.ClientConn {
-//	oncePublish.Do(func() {
-//		initializePublishConnectionPool()
-//	})
-//	return connPublishPool[0] // 返回连接池中的第一个连接，这里可以实现负载均衡或其他连接选择策略
-//}
-
-//func GetRelationConnection() *grpc.ClientConn {
-//	onceRelation.Do(func() {
-//		initializeRelationConnectionPool()
-//	})
-//	return connRelationPool[0] // 返回连接池中的第一个连接，这里可以实现负载均衡或其他连接选择策略
-//}
-//
-//func GetFavoriteConnection() *grpc.ClientConn {
-//	onceFavorite.Do(func() {
-//		initializeFavoriteConnectionPool()
-//	})
-//	return connFavoritePool[0] // 返回连接池中的第一个连接，这里可以实现负载均衡或其他连接选择策略
-//}
-//
-//func GetCommentConnection() *grpc.ClientConn {
-//	onceComment.Do(func() {
-//		initializeCommentConnectionPool()
-//	})
-//	return connCommentPool[0] // 返回连接池中的第一个连接，这里可以实现负载均衡或其他连接选择策略
-//}
-//
-//func GetMessageConnection() *grpc.ClientConn {
-//	onceMessage.Do(func() {
-//		initializeMessageConnectionPool()
-//	})
-//	return connMessagePool[0] // 返回连接池中的第一个连接，这里可以实现负载均衡或其他连接选择策略
-//}
-//
-//func GetFriendConnection() *grpc.ClientConn {
-//	onceFriend.Do(func() {
-//		initializeFriendConnectionPool()
-//	})
-//	return connFriendPool[0] // 返回连接池中的第一个连接，这里可以实现负载均衡或其他连接选择策略
-//}

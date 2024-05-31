@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"net"
+	"strings"
 )
 
 func main() {
@@ -30,8 +31,8 @@ func main() {
 	//注册中心注册
 	s := &registry.Service{
 		Name:     "feed",
-		Port:     "9091",
-		IP:       "127.0.0.1",
+		IP:       strings.Split(config.FEED_SERVER_ADDR, ":")[0],
+		Port:     strings.Split(config.FEED_SERVER_ADDR, ":")[1],
 		Protocol: "grpc",
 	}
 	go registry.ServiceRegister(s)

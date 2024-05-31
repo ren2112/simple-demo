@@ -97,7 +97,8 @@ func ServiceDiscovery(serviceName string) *Service {
 }
 
 // 监视服务端的任何变化及时更新
-func WatchServiceName(serviceName string) {
+func WatchServiceName(serviceName string, signal chan<- struct{}) {
+
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   etcd.GetEtcdEndpoints(),
 		DialTimeout: etcd.DailTime,
@@ -133,6 +134,7 @@ func WatchServiceName(serviceName string) {
 		douyinServices.Unlock()
 	}
 
+	signal <- struct{}{}
 	//	开启监视
 	rch := cli.Watch(context.Background(), serviceName, clientv3.WithPrefix())
 	for wres := range rch {
