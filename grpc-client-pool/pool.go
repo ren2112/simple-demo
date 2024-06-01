@@ -7,12 +7,12 @@ import (
 	"sync"
 )
 
-type ClientFeedPool struct {
+type ClientPool struct {
 	sync.Pool
 }
 
-func GetFeedPool(target string, opts ...grpc.DialOption) (*ClientFeedPool, error) {
-	return &ClientFeedPool{
+func GetPool(target string, opts ...grpc.DialOption) (*ClientPool, error) {
+	return &ClientPool{
 		Pool: sync.Pool{
 			New: func() interface{} {
 				conn, err := grpc.Dial(target, opts...)
@@ -25,7 +25,7 @@ func GetFeedPool(target string, opts ...grpc.DialOption) (*ClientFeedPool, error
 	}, nil
 }
 
-func (c *ClientFeedPool) Get() *grpc.ClientConn {
+func (c *ClientPool) Get() *grpc.ClientConn {
 	conn := c.Pool.Get().(*grpc.ClientConn)
 	if conn == nil || conn.GetState() == connectivity.Shutdown || conn.GetState() == connectivity.TransientFailure {
 		if conn != nil {
@@ -36,7 +36,7 @@ func (c *ClientFeedPool) Get() *grpc.ClientConn {
 	return conn
 }
 
-func (c *ClientFeedPool) Put(conn *grpc.ClientConn) {
+func (c *ClientPool) Put(conn *grpc.ClientConn) {
 	if conn == nil {
 		return
 	}

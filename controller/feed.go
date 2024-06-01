@@ -22,13 +22,13 @@ func Feed(c *gin.Context) {
 	tokenStr := c.Query("token")
 
 	// 从连接池中获取连接
-	conn := common.ConnFeedPool.Get()
+	conn := common.AllPools["feed"][0].Get()
 	//defer conn.Close()
 
 	// 建立连接
 	client := pb.NewVideoFeedServiceClient(conn)
 	resp, err := client.GetFeedList(c, &pb.DouyinFeedRequest{LatestTime: latestTime, Token: tokenStr})
-	common.ConnFeedPool.Put(conn)
+	common.AllPools["feed"][0].Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return

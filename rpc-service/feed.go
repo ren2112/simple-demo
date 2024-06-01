@@ -17,7 +17,7 @@ import (
 func main() {
 	utils.InitConfig()
 	common.InitDB()
-	listen, err := net.Listen("tcp", config.FEED_SERVER_ADDR)
+	listen, err := net.Listen("tcp", "localhost:9092")
 	if err != nil {
 		fmt.Printf("无法启动监听：%v\n", err)
 		return
@@ -32,7 +32,7 @@ func main() {
 	s := &registry.Service{
 		Name:     "feed",
 		IP:       strings.Split(config.FEED_SERVER_ADDR, ":")[0],
-		Port:     strings.Split(config.FEED_SERVER_ADDR, ":")[1],
+		Port:     "9092",
 		Protocol: "grpc",
 	}
 	go registry.ServiceRegister(s)

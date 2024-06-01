@@ -2,10 +2,11 @@ package registry
 
 import (
 	"context"
+	"fmt"
 	"github.com/RaymondCode/simple-demo/etcd"
-	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"log"
+	"strings"
 	"sync"
 )
 
@@ -26,79 +27,50 @@ func ServiceRegister(s *Service) {
 		log.Fatal(err)
 	}
 	defer cli.Close()
-	var grantLease bool
 	var leaseId clientv3.LeaseID
 	ctx := context.Background()
 
-	//	查找etcd服务端是否存在服务
-	getRes, err := cli.Get(ctx, s.Name, clientv3.WithCountOnly())
+	servicekey := fmt.Sprintf("%s/%s:%s", s.Name, s.IP, s.Port)
+	leaseRes, err := cli.Grant(ctx, 10)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if getRes.Count == 0 {
-		grantLease = true
-	}
-	if grantLease {
-		leaseRes, err := cli.Grant(ctx, 10)
-		if err != nil {
-			log.Fatal(err)
-		}
-		leaseId = leaseRes.ID
-	}
-
-	//	开启事务，进行注册
+	leaseId = leaseRes.ID
 	kv := clientv3.NewKV(cli)
-	txn := kv.Txn(ctx)
-	_, err = txn.If(clientv3.Compare(clientv3.CreateRevision(s.Name), "=", 0)).
-		Then(
-			clientv3.OpPut(s.Name, s.Name, clientv3.WithLease(leaseId)),
-			clientv3.OpPut(s.Name+".ip", s.IP, clientv3.WithLease(leaseId)),
-			clientv3.OpPut(s.Name+".port", s.Port, clientv3.WithLease(leaseId)),
-			clientv3.OpPut(s.Name+".protocol", s.Protocol, clientv3.WithLease(leaseId)),
-		).
-		Else(
-			clientv3.OpPut(s.Name, s.Name, clientv3.WithIgnoreLease()),
-			clientv3.OpPut(s.Name+".ip", s.IP, clientv3.WithIgnoreLease()),
-			clientv3.OpPut(s.Name+".port", s.Port, clientv3.WithIgnoreLease()),
-			clientv3.OpPut(s.Name+".protocol", s.Protocol, clientv3.WithIgnoreLease()),
-		).
-		Commit()
-
+	_, err = kv.Put(ctx, servicekey, fmt.Sprintf("%s:%s:%s", s.IP, s.Port, s.Protocol), clientv3.WithLease(leaseId))
 	if err != nil {
 		log.Fatal(err)
 	}
-	if grantLease {
-		leaseKeepalive, err := cli.KeepAlive(ctx, leaseId)
-		if err != nil {
-			log.Fatal(err)
-		}
-		//需要及时获取反馈消息，否则当做挂死
-		for range leaseKeepalive {
-		}
+
+	leaseKeepalive, err := cli.KeepAlive(ctx, leaseId)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//需要及时获取反馈消息，否则当做挂死
+	for range leaseKeepalive {
 	}
 }
 
 type Services struct {
-	services map[string]*Service
+	services map[string][]*Service
 	sync.RWMutex
 }
 
 var douyinServices = &Services{
-	services: map[string]*Service{},
+	services: map[string][]*Service{},
 }
 
 // 服务发现
-func ServiceDiscovery(serviceName string) *Service {
-	var s *Service = nil
+func ServiceDiscovery(serviceName string) []*Service {
+	var services []*Service = nil
 	douyinServices.RLock()
-	s, _ = douyinServices.services[serviceName]
+	services, _ = douyinServices.services[serviceName]
 	douyinServices.RUnlock()
-	return s
+	return services
 }
 
 // 监视服务端的任何变化及时更新
-func WatchServiceName(serviceName string, signal chan<- struct{}) {
-
+func WatchServiceName(serviceName string, wait *sync.WaitGroup) {
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   etcd.GetEtcdEndpoints(),
 		DialTimeout: etcd.DailTime,
@@ -108,56 +80,77 @@ func WatchServiceName(serviceName string, signal chan<- struct{}) {
 		return
 	}
 	defer cli.Close()
-	getRes, err := cli.Get(context.Background(), serviceName, clientv3.WithPrefix())
+	getRes, err := cli.Get(context.Background(), serviceName+"/", clientv3.WithPrefix())
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
-	//如果存在服务，则将服务存储到本进程的douyinService
+	//如果存在服务，则将服务存储到本进程的douyinService(相当于需要初始化我们的服务注册表格，使得客户端能使用服务发现的注册表来获得地址)
 	if getRes.Count > 0 {
-		mp := sliceToMap(getRes.Kvs)
-		s := &Service{}
-		if kv, ok := mp[serviceName]; ok {
-			s.Name = string(kv.Value)
-		}
-		if kv, ok := mp[serviceName+".ip"]; ok {
-			s.IP = string(kv.Value)
-		}
-		if kv, ok := mp[serviceName+".port"]; ok {
-			s.Port = string(kv.Value)
-		}
-		if kv, ok := mp[serviceName+".protocol"]; ok {
-			s.Protocol = string(kv.Value)
+		var services []*Service
+		for _, kv := range getRes.Kvs {
+			parts := strings.Split(string(kv.Value), ":")
+			if len(parts) != 3 {
+				continue
+			}
+			s := &Service{
+				Name:     serviceName,
+				IP:       parts[0],
+				Port:     parts[1],
+				Protocol: parts[2],
+			}
+			services = append(services, s)
 		}
 		douyinServices.Lock()
-		douyinServices.services[serviceName] = s
+		douyinServices.services[serviceName] = services
 		douyinServices.Unlock()
 	}
 
-	signal <- struct{}{}
+	wait.Done()
 	//	开启监视
-	rch := cli.Watch(context.Background(), serviceName, clientv3.WithPrefix())
+	rch := cli.Watch(context.Background(), serviceName+"/", clientv3.WithPrefix())
 	for wres := range rch {
 		for _, ev := range wres.Events {
-			if ev.Type == clientv3.EventTypeDelete {
-				douyinServices.Lock()
-				delete(douyinServices.services, serviceName)
-				douyinServices.Unlock()
+			parts := strings.Split(string(ev.Kv.Key), "/")
+			if len(parts) != 2 {
+				continue
 			}
-			if ev.Type == clientv3.EventTypePut {
+			addr := parts[1]
+			switch ev.Type {
+			case clientv3.EventTypeDelete:
 				douyinServices.Lock()
-				if _, ok := douyinServices.services[serviceName]; !ok {
-					douyinServices.services[serviceName] = &Service{}
+				var updatedServices []*Service
+				for _, s := range douyinServices.services[serviceName] {
+					if s.IP+":"+s.Port != addr {
+						updatedServices = append(updatedServices, s)
+					}
 				}
-				switch string(ev.Kv.Key) {
-				case serviceName:
-					douyinServices.services[serviceName].Name = string(ev.Kv.Value)
-				case serviceName + ".ip":
-					douyinServices.services[serviceName].IP = string(ev.Kv.Value)
-				case serviceName + ".port":
-					douyinServices.services[serviceName].Port = string(ev.Kv.Value)
-				case serviceName + ".protocol":
-					douyinServices.services[serviceName].Protocol = string(ev.Kv.Value)
+				douyinServices.services[serviceName] = updatedServices
+				douyinServices.Unlock()
+
+			case clientv3.EventTypePut:
+				partsPut := strings.Split(string(ev.Kv.Value), ":")
+				if len(partsPut) != 3 {
+					continue
+				}
+				newService := &Service{
+					Name:     serviceName,
+					IP:       partsPut[0],
+					Port:     partsPut[1],
+					Protocol: partsPut[2],
+				}
+				douyinServices.Lock()
+				//检查服务实例是否存在，若存在就更新（就只有protocol能更新）
+				found := false
+				for i, s := range douyinServices.services[serviceName] {
+					if s.IP == newService.IP && s.Port == newService.Port {
+						douyinServices.services[serviceName][i] = newService
+						found = true
+						break
+					}
+				}
+				if !found {
+					douyinServices.services[serviceName] = append(douyinServices.services[serviceName], newService)
 				}
 				douyinServices.Unlock()
 			}
@@ -165,10 +158,6 @@ func WatchServiceName(serviceName string, signal chan<- struct{}) {
 	}
 }
 
-func sliceToMap(list []*mvccpb.KeyValue) map[string]*mvccpb.KeyValue {
-	mp := make(map[string]*mvccpb.KeyValue, 0)
-	for _, item := range list {
-		mp[string(item.Key)] = item
-	}
-	return mp
+func addPool() {
+
 }

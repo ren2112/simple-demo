@@ -17,11 +17,11 @@ func Register(c *gin.Context) {
 	password := c.Query("password")
 
 	//获取rpc连接
-	conn := common.ConnUserPool.Get()
+	conn := common.AllPools["user"][0].Get()
 
 	client := pb.NewUserServiceClient(conn)
 	resp, err := client.Regist(c, &pb.DouyinUserRegisterRequest{Username: username, Password: password})
-	common.ConnUserPool.Put(conn)
+	common.AllPools["user"][0].Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, "注册失败"+err.Error())
 		return
@@ -33,11 +33,11 @@ func Login(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
 
-	conn := common.ConnUserPool.Get()
+	conn := common.AllPools["user"][0].Get()
 
 	client := pb.NewUserServiceClient(conn)
 	resp, err := client.Login(c, &pb.DouyinUserLoginRequest{Username: username, Password: password})
-	common.ConnUserPool.Put(conn)
+	common.AllPools["user"][0].Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return
@@ -51,11 +51,11 @@ func UserInfo(c *gin.Context) {
 		response.UserLoginRespFail(c, "用户不存在")
 	}
 
-	conn := common.ConnUserPool.Get()
+	conn := common.AllPools["user"][0].Get()
 
 	client := pb.NewUserServiceClient(conn)
 	resp, err := client.GetUserInfo(c, &pb.DouyinUserRequest{UserId: int64(userId)})
-	common.ConnUserPool.Put(conn)
+	common.AllPools["user"][0].Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return

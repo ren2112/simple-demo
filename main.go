@@ -5,6 +5,7 @@ import (
 	"github.com/RaymondCode/simple-demo/config"
 	"github.com/RaymondCode/simple-demo/middleware"
 	"github.com/RaymondCode/simple-demo/registry"
+	"sync"
 	"time"
 
 	//"github.com/RaymondCode/simple-demo/service"
@@ -12,17 +13,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var signal = make(chan struct{})
+var wait sync.WaitGroup
 
 func WatchService() {
 	services := []string{"feed", "user", "publish", "favorite", "comment", "relation", "message", "friend"}
 
 	for _, service := range services {
-		go registry.WatchServiceName(service, signal)
-	}
-
-	for range services {
-		<-signal
+		wait.Add(1)
+		go registry.WatchServiceName(service, &wait)
 	}
 }
 func main() {
@@ -30,6 +28,7 @@ func main() {
 
 	WatchService()
 	//需要先阻塞等watchServiceName初始化我们的douyinservice才可以初始化线程池
+	wait.Wait()
 
 	utils.InitConfig()
 	common.InitDB()

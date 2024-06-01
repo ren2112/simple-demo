@@ -23,11 +23,11 @@ func FavoriteAction(c *gin.Context) {
 		return
 	}
 
-	conn := common.ConnFavoritePool.Get()
+	conn := common.AllPools["favorite"][0].Get()
 
 	client := pb.NewFavoriteServiceClient(conn)
 	resp, err := client.FavoriteAction(c, &pb.DouyinFavoriteActionRequest{ActionType: int32(actionType), Token: token, VideoId: int64(videoID)})
-	common.ConnRelationPool.Put(conn)
+	common.AllPools["favorite"][0].Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 	} else {
@@ -44,11 +44,11 @@ func FavoriteList(c *gin.Context) {
 		response.CommonResp(c, 1, "用户不存在！")
 	}
 
-	conn := common.ConnFavoritePool.Get()
+	conn := common.AllPools["favorite"][0].Get()
 
 	client := pb.NewFavoriteServiceClient(conn)
 	resp, err := client.GetFavoriteList(c, &pb.DouyinFavoriteListRequest{UserId: userId, Token: token})
-	common.ConnFavoritePool.Put(conn)
+	common.AllPools["favorite"][0].Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 	} else {
