@@ -23,3 +23,10 @@ func CommonServerError(c *gin.Context) {
 		StatusMsg:  "操作失败！",
 	})
 }
+
+func RPCServerUnstart(c *gin.Context, str string) {
+	c.JSON(http.StatusOK, Response{
+		StatusCode: 1,
+		StatusMsg:  str + "服务未启动",
+	})
+}

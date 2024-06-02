@@ -2,9 +2,9 @@ package controller
 
 import (
 	"fmt"
-	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/config"
 	"github.com/RaymondCode/simple-demo/model"
+	"github.com/RaymondCode/simple-demo/registry"
 	"github.com/RaymondCode/simple-demo/response"
 	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"github.com/RaymondCode/simple-demo/service"
@@ -73,13 +73,17 @@ func PublishList(c *gin.Context) {
 	}
 
 	// 从连接池中获取连接
-	conn := common.AllPools["publish"][0].Get()
-	//defer conn.Close()
+	connPool, ok := registry.GetPool("publish")
+	if !ok {
+		response.RPCServerUnstart(c, "publish")
+		return
+	}
+	conn := connPool.Get()
 
 	// 建立连接
 	client := pb.NewPublishServiceClient(conn)
 	resp, err := client.GetPublishList(c, &pb.DouyinPublishListRequest{UserId: int64(userId)})
-	common.AllPools["publish"][0].Put(conn)
+	connPool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return

@@ -127,6 +127,7 @@ func WatchServiceName(serviceName string, wait *sync.WaitGroup) {
 				}
 				douyinServices.services[serviceName] = updatedServices
 				douyinServices.Unlock()
+				InitAllConnPool()
 
 			case clientv3.EventTypePut:
 				partsPut := strings.Split(string(ev.Kv.Value), ":")
@@ -153,6 +154,7 @@ func WatchServiceName(serviceName string, wait *sync.WaitGroup) {
 					douyinServices.services[serviceName] = append(douyinServices.services[serviceName], newService)
 				}
 				douyinServices.Unlock()
+				InitAllConnPool()
 			}
 		}
 	}

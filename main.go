@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	//"github.com/RaymondCode/simple-demo/service"
 	"github.com/RaymondCode/simple-demo/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -33,7 +32,7 @@ func main() {
 	utils.InitConfig()
 	common.InitDB()
 	common.InitRedis()
-	common.InitAllConnPool()
+	registry.InitAllConnPool()
 
 	r := gin.Default()
 	//使用token桶来对请求节流

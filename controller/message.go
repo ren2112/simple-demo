@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"github.com/RaymondCode/simple-demo/common"
+	"github.com/RaymondCode/simple-demo/registry"
 	"github.com/RaymondCode/simple-demo/response"
 	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"github.com/gin-gonic/gin"
@@ -18,11 +18,16 @@ func MessageAction(c *gin.Context) {
 	}
 	content := c.Query("content")
 
-	conn := common.AllPools["message"][0].Get()
+	connPool, ok := registry.GetPool("message")
+	if !ok {
+		response.RPCServerUnstart(c, "message")
+		return
+	}
+	conn := connPool.Get()
 	// 建立连接
 	client := pb.NewChatServiceClient(conn)
 	resp, err := client.ChatAction(c, &pb.DouyinChatActionRequest{Token: token, ToUserId: toUserId, Content: content})
-	common.AllPools["message"][0].Put(conn)
+	connPool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return
@@ -45,11 +50,16 @@ func MessageChat(c *gin.Context) {
 		return
 	}
 
-	conn := common.AllPools["message"][0].Get()
+	connPool, ok := registry.GetPool("message")
+	if !ok {
+		response.RPCServerUnstart(c, "message")
+		return
+	}
+	conn := connPool.Get()
 	// 建立连接
 	client := pb.NewChatServiceClient(conn)
 	resp, err := client.GetChatList(c, &pb.DouyinMessageChatRequest{Token: token, ToUserId: toUserId, PreMsgTime: preMsgTime})
-	common.AllPools["message"][0].Put(conn)
+	connPool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return

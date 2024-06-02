@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/config"
@@ -15,9 +16,19 @@ import (
 )
 
 func main() {
+	var ip string
+	var port string
+
+	// 使用flag包定义命令行参数
+	flag.StringVar(&ip, "i", strings.Split(config.FRIEND_SERVER_ADDR, ":")[0], "The IP address to listen on")
+	flag.StringVar(&port, "p", strings.Split(config.FRIEND_SERVER_ADDR, ":")[1], "The port number to listen on")
+
+	// 解析命令行参数
+	flag.Parse()
+
 	utils.InitConfig()
 	common.InitDB()
-	listen, err := net.Listen("tcp", config.FRIEND_SERVER_ADDR)
+	listen, err := net.Listen("tcp", ip+":"+port)
 	if err != nil {
 		fmt.Printf("无法启动监听：%v\n", err)
 		return
@@ -31,8 +42,8 @@ func main() {
 	//服务中心注册
 	s := &registry.Service{
 		Name:     "friend",
-		IP:       strings.Split(config.FRIEND_SERVER_ADDR, ":")[0],
-		Port:     strings.Split(config.FRIEND_SERVER_ADDR, ":")[1],
+		IP:       ip,
+		Port:     port,
 		Protocol: "grpc",
 	}
 	go registry.ServiceRegister(s)
@@ -40,7 +51,7 @@ func main() {
 	// 启动 gRPC 服务
 	fmt.Println("启动friend gRPC 服务...")
 	if err := grpcServer.Serve(listen); err != nil {
-		fmt.Printf("启动视频流 frie  nd 服务失败：%v\n", err)
+		fmt.Printf("启动视频流 friend 服务失败：%v\n", err)
 		return
 	}
 }

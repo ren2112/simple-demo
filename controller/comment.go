@@ -1,8 +1,8 @@
 package controller
 
 import (
-	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
+	"github.com/RaymondCode/simple-demo/registry"
 	"github.com/RaymondCode/simple-demo/response"
 	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"github.com/RaymondCode/simple-demo/service"
@@ -40,11 +40,16 @@ func CommentAction(c *gin.Context) {
 		return
 	}
 
-	conn := common.AllPools["comment"][0].Get()
+	connPool, ok := registry.GetPool("comment")
+	if !ok {
+		response.RPCServerUnstart(c, "comment")
+		return
+	}
+	conn := connPool.Get()
 
 	client := pb.NewCommentServiceClient(conn)
 	resp, err := client.CommentAction(c, &pb.DouyinCommentActionRequest{Token: token, VideoId: videoId, ActionType: int32(actionType), CommentText: text, CommentId: commentId, User: service.ToProtoUser(user.(model.User))})
-	common.AllPools["comment"][0].Put(conn)
+	connPool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return
@@ -59,11 +64,16 @@ func CommentList(c *gin.Context) {
 		response.CommonResp(c, 1, "无效操作！")
 	}
 
-	conn := common.AllPools["comment"][0].Get()
+	connPool, ok := registry.GetPool("comment")
+	if !ok {
+		response.RPCServerUnstart(c, "comment")
+		return
+	}
+	conn := connPool.Get()
 
 	client := pb.NewCommentServiceClient(conn)
 	resp, err := client.GetCommentList(c, &pb.DouyinCommentListRequest{VideoId: videoId})
-	common.AllPools["comment"][0].Put(conn)
+	connPool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return

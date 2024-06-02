@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"github.com/RaymondCode/simple-demo/common"
+	"github.com/RaymondCode/simple-demo/registry"
 	"github.com/RaymondCode/simple-demo/response"
 	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"github.com/gin-gonic/gin"
@@ -22,13 +22,17 @@ func Feed(c *gin.Context) {
 	tokenStr := c.Query("token")
 
 	// 从连接池中获取连接
-	conn := common.AllPools["feed"][0].Get()
-	//defer conn.Close()
+	connPool, ok := registry.GetPool("feed")
+	if !ok {
+		response.RPCServerUnstart(c, "feed")
+		return
+	}
+	conn := connPool.Get()
 
 	// 建立连接
 	client := pb.NewVideoFeedServiceClient(conn)
 	resp, err := client.GetFeedList(c, &pb.DouyinFeedRequest{LatestTime: latestTime, Token: tokenStr})
-	common.AllPools["feed"][0].Put(conn)
+	connPool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return
