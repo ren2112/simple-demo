@@ -1,14 +1,18 @@
 package service
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
 	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
+	redislock "github.com/jefferyjob/go-redislock"
 	"gorm.io/gorm"
 )
 
 func RelationAction(actionType string, userId int64, targetId int) error {
+	ctx := context.Background()
 	// 开启事务
 	tx := common.DB.Begin()
 
@@ -39,11 +43,20 @@ func RelationAction(actionType string, userId int64, targetId int) error {
 				return errors.New("操作失败！")
 			}
 
+			//对粉丝数量更新上分布式锁
+			lock := redislock.New(ctx, common.RedisClient, fmt.Sprintf("relation:%d", targetId), redislock.WithAutoRenew())
+			err := lock.Lock()
+			if err != nil {
+				return errors.New("操作失败！")
+			}
+
 			// 更新被关注者的粉丝数加一
 			if err := tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.User{}).Where("id = ?", targetId).Update("follower_count", gorm.Expr("follower_count + ?", 1)).Error; err != nil {
 				tx.Rollback()
+				lock.UnLock()
 				return errors.New("操作失败！")
 			}
+			lock.UnLock()
 			//	如果已经存在告知不可重复关注
 		} else {
 			if err := tx.Create(&follow).Error; err != nil {
@@ -72,11 +85,20 @@ func RelationAction(actionType string, userId int64, targetId int) error {
 			return errors.New("操作失败！")
 		}
 
+		//对粉丝数减少加分布式锁
+		lock := redislock.New(ctx, common.RedisClient, fmt.Sprintf("relation:%d", targetId), redislock.WithAutoRenew())
+		err := lock.Lock()
+		if err != nil {
+			return errors.New("操作失败！")
+		}
+
 		// 更新被关注者的粉丝数减一
 		if err := tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.User{}).Where("id = ?", targetId).Update("follower_count", gorm.Expr("follower_count - ?", 1)).Error; err != nil {
 			tx.Rollback()
+			lock.UnLock()
 			return errors.New("操作失败！")
 		}
+		lock.UnLock()
 	default:
 		tx.Rollback()
 		return errors.New("操作失败！")

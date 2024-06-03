@@ -1,14 +1,18 @@
 package service
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/model"
 	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
+	redislock "github.com/jefferyjob/go-redislock"
 	"gorm.io/gorm"
 )
 
 func FavoriteAction(actionType int32, userId int64, videoId int64) error {
+	ctx := context.Background()
 	var favorite model.Favorite
 	favorite.UserId = userId
 	favorite.VideoId = videoId
@@ -42,17 +46,35 @@ func FavoriteAction(actionType int32, userId int64, videoId int64) error {
 			}
 		}
 
+		//上redis分布式锁锁视频保证并发情况点赞安全
+		lock := redislock.New(ctx, common.RedisClient, fmt.Sprintf("favorite_video:%d", videoId), redislock.WithAutoRenew())
+		err := lock.Lock()
+		if err != nil {
+			return errors.New("操作失败！")
+		}
+
 		// 更新视频的favorite_count字段
 		if err := tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.Video{}).Where("id = ?", videoId).Update("favorite_count", gorm.Expr("favorite_count + ?", 1)).Error; err != nil {
 			tx.Rollback()
+			lock.UnLock()
+			return errors.New("操作失败！")
+		}
+		lock.UnLock()
+
+		//给视频作者更新获赞数量需要分布式锁
+		lock = redislock.New(ctx, common.RedisClient, fmt.Sprintf("totalfavorited:%d", author.Id), redislock.WithAutoRenew())
+		err = lock.Lock()
+		if err != nil {
 			return errors.New("操作失败！")
 		}
 
 		// 更新视频作者的TotalFavorited字段
 		if err := tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.User{}).Where("id = ?", author.Id).Update("total_favorited", gorm.Expr("total_favorited + ?", 1)).Error; err != nil {
 			tx.Rollback()
+			lock.UnLock()
 			return errors.New("操作失败！")
 		}
+		lock.UnLock()
 
 		// 更新用户的favorite_count字段
 		if err := tx.Model(&model.User{}).Where("id = ?", userId).Update("favorite_count", gorm.Expr("favorite_count + ?", 1)).Error; err != nil {
@@ -65,19 +87,37 @@ func FavoriteAction(actionType int32, userId int64, videoId int64) error {
 		if existFavorite.Id == 0 || existFavorite.IsFavorite == false {
 			return errors.New("请勿在没点赞情况下取消点赞")
 		}
-
+		//将true改为false表示取消点赞
 		tx.Model(&model.Favorite{}).Where("user_id = ? AND video_id = ?", userId, videoId).Update("is_favorite", false)
+
+		//上点赞分布式锁
+		lock := redislock.New(ctx, common.RedisClient, fmt.Sprintf("favorite_video:%d", videoId), redislock.WithAutoRenew())
+		err := lock.Lock()
+		if err != nil {
+			return errors.New("操作失败！")
+		}
 		// 更新视频的favorite_count字段
 		if err := tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.Video{}).Where("id = ?", videoId).Update("favorite_count", gorm.Expr("favorite_count - ?", 1)).Error; err != nil {
 			tx.Rollback()
+			lock.UnLock()
+			return errors.New("操作失败！")
+		}
+		lock.UnLock()
+
+		//对获赞上分布式锁
+		lock = redislock.New(ctx, common.RedisClient, fmt.Sprintf("totalfavorited:%d", author.Id), redislock.WithAutoRenew())
+		err = lock.Lock()
+		if err != nil {
 			return errors.New("操作失败！")
 		}
 
 		// 更新视频作者的TotalFavorited字段
 		if err := tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.User{}).Where("id = ?", author.Id).Update("total_favorited", gorm.Expr("total_favorited - ?", 1)).Error; err != nil {
 			tx.Rollback()
+			lock.UnLock()
 			return errors.New("操作失败！")
 		}
+		lock.UnLock()
 
 		// 更新用户的favorite_count字段
 		if err := tx.Model(&model.User{}).Where("id = ?", userId).Update("favorite_count", gorm.Expr("favorite_count - ?", 1)).Error; err != nil {

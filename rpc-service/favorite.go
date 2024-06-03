@@ -27,6 +27,7 @@ func main() {
 	flag.Parse()
 
 	utils.InitConfig()
+	common.InitRedis()
 	common.InitDB()
 	listen, err := net.Listen("tcp", ip+":"+port)
 	if err != nil {
