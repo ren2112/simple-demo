@@ -14,7 +14,7 @@ func (c CommentService) CommentAction(ctx context.Context, req *pb.DouyinComment
 	respComment := pb.Comment{}
 	err := service.CommentAction(req.ActionType, req.User, req.VideoId, req.CommentText, req.CommentId, &respComment)
 	if err != nil {
-		return &pb.DouyinCommentActionResponse{StatusCode: 1, StatusMsg: "异常！"}, err
+		return &pb.DouyinCommentActionResponse{StatusCode: 1, StatusMsg: err.Error()}, nil
 	}
 	return &pb.DouyinCommentActionResponse{StatusCode: 0, StatusMsg: "评论成功！", Comment: &respComment}, nil
 }

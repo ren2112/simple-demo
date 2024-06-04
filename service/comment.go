@@ -1,21 +1,33 @@
 package service
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/config"
 	"github.com/RaymondCode/simple-demo/model"
 	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
+	redislock "github.com/jefferyjob/go-redislock"
 	"gorm.io/gorm"
 )
 
 func CommentAction(actionType int32, user *pb.User, videoId int64, text string, commentId int64, respComment *pb.Comment) error {
+	ctx := context.Background()
 	userId := user.Id
 
 	//开始对comment表格操作
 	var comment model.Comment
 	comment.VideoId = videoId
 	comment.UserId = userId
+
+	//增加评论数需要上分布式锁，保证数据一致
+	lock := redislock.New(ctx, common.RedisClient, fmt.Sprintf("comment_video:%d", videoId), redislock.WithAutoRenew())
+	err := lock.Lock()
+	if err != nil {
+		return errors.New("操作失败！")
+	}
+	defer lock.UnLock()
 
 	// 添加评论
 	if actionType == 1 {
@@ -25,8 +37,17 @@ func CommentAction(actionType int32, user *pb.User, videoId int64, text string, 
 		tx.Create(&comment)
 
 		// 增加评论数
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
-			return err
+		result := tx.Set("gorm:query_option", "FOR UPDATE").
+			Model(&model.Video{}).
+			Where("id = ?", videoId).
+			Update("comment_count", gorm.Expr("comment_count + ?", 1))
+
+		if result.Error != nil {
+			return result.Error
+		}
+
+		if result.RowsAffected == 0 {
+			return errors.New("视频不存在！")
 		}
 
 		tx.Commit()
@@ -46,9 +67,16 @@ func CommentAction(actionType int32, user *pb.User, videoId int64, text string, 
 		}
 
 		// 减少评论数
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.Video{}).Where("id = ?", videoId).UpdateColumn("comment_count", gorm.Expr("comment_count - ?", 1)).Error; err != nil {
+		if result := tx.Set("gorm:query_option", "FOR UPDATE").
+			Model(&model.Video{}).
+			Where("id = ?", videoId).
+			UpdateColumn("comment_count", gorm.Expr("comment_count - ?", 1)); result.Error != nil {
+
 			tx.Rollback()
-			return err
+			return result.Error
+		} else if result.RowsAffected == 0 {
+			tx.Rollback()
+			return errors.New("视频不存在")
 		}
 
 		tx.Commit()

@@ -2,23 +2,41 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"github.com/RaymondCode/simple-demo/service"
 	"strconv"
+	"sync"
 )
 
 type RelationService struct {
 	pb.UnimplementedRelationServiceServer
 }
 
+var LockRelationMap sync.Map
+
 func (r RelationService) FollowAction(ctx context.Context, req *pb.DouyinRelationActionRequest) (*pb.DouyinRelationActionResponse, error) {
 	_, claims, _ := common.ParseToken(req.Token)
-	err := service.RelationAction(strconv.Itoa(int(req.ActionType)), claims.UserId, int(req.ToUserId))
+
+	key := fmt.Sprintf("follow_to:%d", req.ToUserId)
+	// 加载或创建锁，并确保最后解锁
+	var mutex *sync.Mutex
+	value, ok := LockRelationMap.Load(key)
+	if !ok {
+		mutex = new(sync.Mutex)
+		LockRelationMap.Store(key, mutex)
+	} else {
+		mutex = value.(*sync.Mutex)
+	}
+	mutex.Lock()
+	defer mutex.Unlock() // 确保在函数退出前解锁
+
+	err := service.RelationAction(strconv.Itoa(int(req.ActionType)), claims.UserId, req.ToUserId)
 	if err != nil {
 		return &pb.DouyinRelationActionResponse{StatusCode: 1, StatusMsg: err.Error()}, nil
 	} else {
-		return &pb.DouyinRelationActionResponse{StatusCode: 0, StatusMsg: "关注成功！"}, nil
+		return &pb.DouyinRelationActionResponse{StatusCode: 0, StatusMsg: "操作成功！"}, nil
 	}
 }
 

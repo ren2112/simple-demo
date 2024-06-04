@@ -11,17 +11,26 @@ import (
 	"gorm.io/gorm"
 )
 
-func RelationAction(actionType string, userId int64, targetId int) error {
+func RelationAction(actionType string, userId int64, targetId int64) error {
 	ctx := context.Background()
 	// 开启事务
 	tx := common.DB.Begin()
+
+	//上分布式锁，保证数据逻辑一致
+	lock := redislock.New(ctx, common.RedisClient, fmt.Sprintf("relation:%d", targetId), redislock.WithAutoRenew())
+	err := lock.Lock()
+	if err != nil {
+		tx.Rollback()
+		return errors.New("操作失败！")
+	}
+	defer lock.UnLock()
 
 	switch actionType {
 	case "1": // 关注用户
 		// 创建关注关系
 		var follow model.Follow
 		follow.FollowerUserId = userId
-		follow.UserId = int64(targetId)
+		follow.UserId = targetId
 		if follow.UserId == follow.FollowerUserId {
 			tx.Rollback()
 			return errors.New("不能关注自己！")
@@ -43,26 +52,19 @@ func RelationAction(actionType string, userId int64, targetId int) error {
 				return errors.New("操作失败！")
 			}
 
-			//对粉丝数量更新上分布式锁
-			lock := redislock.New(ctx, common.RedisClient, fmt.Sprintf("relation:%d", targetId), redislock.WithAutoRenew())
-			err := lock.Lock()
-			if err != nil {
-				return errors.New("操作失败！")
-			}
-
 			// 更新被关注者的粉丝数加一
 			if err := tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.User{}).Where("id = ?", targetId).Update("follower_count", gorm.Expr("follower_count + ?", 1)).Error; err != nil {
 				tx.Rollback()
-				lock.UnLock()
 				return errors.New("操作失败！")
 			}
-			lock.UnLock()
 			//	如果已经存在告知不可重复关注
-		} else {
-			if err := tx.Create(&follow).Error; err != nil {
-				tx.Rollback()
-				return errors.New("请勿重复关注！")
-			}
+		} else { //存在关系
+			//if err := tx.Create(&follow).Error; err != nil {
+			//	tx.Rollback()
+			//	return errors.New("请勿重复关注！")
+			//}
+			tx.Rollback()
+			return errors.New("请勿重复关注！")
 		}
 
 	case "2": // 取消关注用户
@@ -85,20 +87,11 @@ func RelationAction(actionType string, userId int64, targetId int) error {
 			return errors.New("操作失败！")
 		}
 
-		//对粉丝数减少加分布式锁
-		lock := redislock.New(ctx, common.RedisClient, fmt.Sprintf("relation:%d", targetId), redislock.WithAutoRenew())
-		err := lock.Lock()
-		if err != nil {
-			return errors.New("操作失败！")
-		}
-
 		// 更新被关注者的粉丝数减一
 		if err := tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.User{}).Where("id = ?", targetId).Update("follower_count", gorm.Expr("follower_count - ?", 1)).Error; err != nil {
 			tx.Rollback()
-			lock.UnLock()
 			return errors.New("操作失败！")
 		}
-		lock.UnLock()
 	default:
 		tx.Rollback()
 		return errors.New("操作失败！")
