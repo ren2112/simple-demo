@@ -5,7 +5,6 @@ import (
 	"github.com/RaymondCode/simple-demo/common"
 	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	"github.com/RaymondCode/simple-demo/service"
-	"gorm.io/gorm"
 	"time"
 )
 
@@ -43,14 +42,7 @@ func (v VideoFeedService) GetFeedList(ctx context.Context, req *pb.DouyinFeedReq
 
 			//	查找videoList的author里面is_follow
 			// 查找作者是否被当前用户关注
-			err = service.JudgeRelation(v.Author.Id, claims.UserId)
-			if err == nil {
-				videoList[i].Author.IsFollow = true
-			} else if err == gorm.ErrRecordNotFound {
-				videoList[i].Author.IsFollow = false
-			} else {
-				return &pb.DouyinFeedResponse{StatusCode: 1, StatusMsg: err.Error()}, nil
-			}
+			videoList[i].Author.IsFollow = service.JudgeRelation(v.Author.Id, claims.UserId)
 		}
 	}
 	var responseTime int64

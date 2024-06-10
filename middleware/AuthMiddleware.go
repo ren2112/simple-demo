@@ -21,6 +21,13 @@ func AuthMiddleware() gin.HandlerFunc {
 			ctx.Abort()
 			return
 		}
+
+		//如果上下文存在用户就返回
+		if _, ok := ctx.Get("user"); ok {
+			ctx.Next()
+			return
+		}
+
 		//检查token是否在redis的黑名单里面
 		if common.CheckTokenInBlacklist(ctx, tokenString) {
 			response.CommonResp(ctx, 1, "你被加入黑名单！24h后解封！")

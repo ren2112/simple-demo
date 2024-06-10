@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
+	"github.com/RaymondCode/simple-demo/config"
 	"github.com/RaymondCode/simple-demo/model"
 	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	redislock "github.com/jefferyjob/go-redislock"
 	"gorm.io/gorm"
+	"time"
 )
 
 func FavoriteAction(actionType int32, userId int64, videoId int64) error {
@@ -19,9 +21,15 @@ func FavoriteAction(actionType int32, userId int64, videoId int64) error {
 
 	//上redis分布式锁锁视频保证并发情况点赞安全
 	lock := redislock.New(ctx, common.RedisClient, fmt.Sprintf("favorite_video:%d", videoId), redislock.WithAutoRenew())
-	err := lock.Lock()
-	if err != nil {
-		return errors.New("操作失败！")
+	start := time.Now()
+	for {
+		if time.Since(start) > config.TIMEOUT {
+			return errors.New("操作失败！")
+		}
+		err := lock.Lock()
+		if err == nil {
+			break
+		}
 	}
 
 	defer lock.UnLock()

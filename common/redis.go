@@ -29,12 +29,12 @@ func CheckTokenInBlacklist(c context.Context, tokenString string) bool {
 }
 
 // 缓存用户
-func CacheUser(c context.Context, userName string, user model.User) error {
+func CacheUser(c context.Context, key string, user model.User) error {
 	userData, err := json.Marshal(user)
 	if err != nil {
 		return err
 	}
-	return RedisClient.Set(c, userName, userData, time.Hour*24).Err()
+	return RedisClient.Set(c, key, userData, time.Hour*24).Err()
 }
 
 // 获取缓存用户信息
@@ -51,4 +51,10 @@ func GetCachedUser(c context.Context, userName string) (*model.User, error) {
 	return &user, nil
 }
 
-//关于视频redis点赞与数据库的同步
+// 缓存一致性
+func DeleteBeforeChange(ctx context.Context, key string) {
+	err := RedisClient.Del(ctx, key)
+	for err != nil {
+		err = RedisClient.Del(ctx, key)
+	}
+}

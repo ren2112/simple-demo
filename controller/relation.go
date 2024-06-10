@@ -18,11 +18,16 @@ func RelationAction(c *gin.Context) {
 		return
 	}
 
-	conn := registry.AllPools["relation"][0].Get()
+	connPool, ok := registry.GetPool("relation")
+	if !ok {
+		response.RPCServerUnstart(c, "relation")
+		return
+	}
+	conn := connPool.Get()
 
 	client := pb.NewRelationServiceClient(conn)
 	resp, err := client.FollowAction(c, &pb.DouyinRelationActionRequest{Token: token, ActionType: int32(actionType), ToUserId: int64(targetID)})
-	registry.AllPools["relation"][0].Put(conn)
+	connPool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return
@@ -39,11 +44,16 @@ func FollowList(c *gin.Context) {
 		return
 	}
 
-	conn := registry.AllPools["relation"][0].Get()
+	connPool, ok := registry.GetPool("relation")
+	if !ok {
+		response.RPCServerUnstart(c, "relation")
+		return
+	}
+	conn := connPool.Get()
 
 	client := pb.NewRelationServiceClient(conn)
 	resp, err := client.GetFollowList(c, &pb.DouyinRelationFollowListRequest{UserId: int64(userId), Token: token})
-	registry.AllPools["relation"][0].Put(conn)
+	connPool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return
@@ -60,11 +70,16 @@ func FollowerList(c *gin.Context) {
 		return
 	}
 
-	conn := registry.AllPools["relation"][0].Get()
+	connPool, ok := registry.GetPool("relation")
+	if !ok {
+		response.RPCServerUnstart(c, "relation")
+		return
+	}
+	conn := connPool.Get()
 
 	client := pb.NewRelationServiceClient(conn)
 	resp, err := client.GetFollowerList(c, &pb.DouyinRelationFollowerListRequest{UserId: int64(userId), Token: token})
-	registry.AllPools["relation"][0].Put(conn)
+	connPool.Put(conn)
 	if err != nil {
 		response.CommonResp(c, 1, err.Error())
 		return

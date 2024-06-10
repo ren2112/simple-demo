@@ -71,10 +71,10 @@ func JudgeFavorite(userId int64, videoId int64) (bool, error) {
 	return isFavorite, err
 }
 
-func JudgeRelation(authorId, userId int64) error {
+func JudgeRelation(authorId, userId int64) bool {
 	var follow model.Follow
-	err := common.DB.Where("user_id = ? AND follower_user_id = ?", authorId, userId).First(&follow).Error
-	return err
+	common.DB.Where("user_id = ? AND follower_user_id = ?", authorId, userId).First(&follow)
+	return follow.IsFollow
 }
 
 func PublishVideo(video model.Video, author model.User) error {

@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
+	"github.com/RaymondCode/simple-demo/config"
 	"github.com/RaymondCode/simple-demo/model"
 	pb "github.com/RaymondCode/simple-demo/rpc-service/proto"
 	redislock "github.com/jefferyjob/go-redislock"
 	"gorm.io/gorm"
+	"time"
 )
 
 func RelationAction(actionType string, userId int64, targetId int64) error {
@@ -18,12 +20,19 @@ func RelationAction(actionType string, userId int64, targetId int64) error {
 
 	//上分布式锁，保证数据逻辑一致
 	lock := redislock.New(ctx, common.RedisClient, fmt.Sprintf("relation:%d", targetId), redislock.WithAutoRenew())
-	err := lock.Lock()
-	if err != nil {
-		tx.Rollback()
-		return errors.New("操作失败！")
+	start := time.Now()
+	for {
+		if time.Since(start) > config.TIMEOUT {
+			return errors.New("操作失败！")
+		}
+		err := lock.Lock()
+		if err == nil {
+			break
+		}
 	}
+
 	defer lock.UnLock()
+	defer tx.Rollback()
 
 	switch actionType {
 	case "1": // 关注用户
@@ -31,8 +40,8 @@ func RelationAction(actionType string, userId int64, targetId int64) error {
 		var follow model.Follow
 		follow.FollowerUserId = userId
 		follow.UserId = targetId
+		follow.IsFollow = true
 		if follow.UserId == follow.FollowerUserId {
-			tx.Rollback()
 			return errors.New("不能关注自己！")
 		}
 
@@ -42,58 +51,51 @@ func RelationAction(actionType string, userId int64, targetId int64) error {
 		if result.RowsAffected == 0 {
 			// 不存在则创建关注关系
 			if err := tx.Create(&follow).Error; err != nil {
-				tx.Rollback()
 				return errors.New("操作失败！")
 			}
 
 			// 更新关注者的关注数加一
 			if err := tx.Model(&model.User{}).Where("id = ?", userId).Update("follow_count", gorm.Expr("follow_count + ?", 1)).Error; err != nil {
-				tx.Rollback()
 				return errors.New("操作失败！")
 			}
 
 			// 更新被关注者的粉丝数加一
 			if err := tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.User{}).Where("id = ?", targetId).Update("follower_count", gorm.Expr("follower_count + ?", 1)).Error; err != nil {
-				tx.Rollback()
 				return errors.New("操作失败！")
 			}
-			//	如果已经存在告知不可重复关注
-		} else { //存在关系
-			//if err := tx.Create(&follow).Error; err != nil {
-			//	tx.Rollback()
-			//	return errors.New("请勿重复关注！")
-			//}
-			tx.Rollback()
-			return errors.New("请勿重复关注！")
+		} else { //存在数据库记录，检查是否isfollow
+			if existingFollow.IsFollow {
+				return errors.New("请勿重复关注！")
+			} else {
+				//若isfollow是false就更新为true
+				if err := tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.Comment{}).Where("user_id= ? AND follower_user_id = ?", targetId, userId).Update("is_follow", true).Error; err != nil {
+					return err
+				}
+			}
 		}
 
 	case "2": // 取消关注用户
 		// 删除关注关系，首先判断是否存在关注关系
 		var existingFollow model.Follow
 		result := tx.Where("user_id=? and follower_user_id=?", targetId, userId).First(&existingFollow)
-		if result.RowsAffected == 0 {
-			tx.Rollback()
-			return errors.New("请勿重复取消关注！")
+		if result.RowsAffected == 0 || !existingFollow.IsFollow {
+			return errors.New("请勿在未关注下取消关注！")
 		}
 
-		if err := tx.Where("user_id = ? AND follower_user_id = ?", targetId, userId).Delete(&model.Follow{}).Error; err != nil {
-			tx.Rollback()
+		if err := tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.Comment{}).Where("user_id= ? AND follower_user_id = ?", targetId, userId).Update("is_follow", false).Error; err != nil {
 			return errors.New("操作失败！")
 		}
 
 		// 更新关注者的关注数减一
 		if err := tx.Model(&model.User{}).Where("id = ?", userId).Update("follow_count", gorm.Expr("follow_count - ?", 1)).Error; err != nil {
-			tx.Rollback()
 			return errors.New("操作失败！")
 		}
 
 		// 更新被关注者的粉丝数减一
 		if err := tx.Set("gorm:query_option", "FOR UPDATE").Model(&model.User{}).Where("id = ?", targetId).Update("follower_count", gorm.Expr("follower_count - ?", 1)).Error; err != nil {
-			tx.Rollback()
 			return errors.New("操作失败！")
 		}
 	default:
-		tx.Rollback()
 		return errors.New("操作失败！")
 	}
 

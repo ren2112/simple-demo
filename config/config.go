@@ -1,9 +1,12 @@
 package config
 
+import "time"
+
 var Server_list = []string{"feed", "user", "publish", "relation", "message", "comment", "friend", "favorite"}
 
 const (
-	LOCAL_IP_ADDRESS        = "192.168.210.67"      // 填入本机 IP 地址
+	TIMEOUT                 = 5 * time.Second
+	LOCAL_IP_ADDRESS        = "192.168.241.67"      // 填入本机 IP 地址
 	VIDEO_STREAM_BATCH_SIZE = 30                    // 每次获取视频流的数量限制
 	DATETIME_FORMAT         = "2006-01-02 15:04:05" // 固定的时间格式
 	AUTH_KEY                = "a_secret_key"        // JWT 密钥

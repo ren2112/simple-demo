@@ -8,5 +8,6 @@ type Follow struct {
 	User           User
 	FollowerUserId int64 `gorm:"foreignKey:User(id)"`
 	FollowerUser   User
+	IsFollow       bool
 	CreatedAt      time.Time
 }

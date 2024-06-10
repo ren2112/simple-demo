@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"github.com/RaymondCode/simple-demo/model"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -32,7 +33,7 @@ func InitDB() {
 	//DB.AutoMigrate(&model.Video{})
 	//DB.AutoMigrate(&model.Favorite{})
 	//DB.AutoMigrate(&model.Comment{})
-	//DB.AutoMigrate(&model.Follow{})
+	DB.AutoMigrate(&model.Follow{})
 	//DB.AutoMigrate(&model.Message{})
 	fmt.Println("mysql inited")
 }
